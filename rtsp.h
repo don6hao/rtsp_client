@@ -16,9 +16,9 @@
 #define SETUP_TRNS_SERVER  "server_port="
 
 typedef struct RTP_TCP{
-    int8_t  start;          /* interleaved start */
-    int8_t  end;            /* interleaved end   */
-    int8_t  reserve[3];
+    char  start;          /* interleaved start */
+    char  end;            /* interleaved end   */
+    char  reserve[3];
 }RtpTcp;
 
 typedef struct RTP_UDP{
@@ -27,9 +27,9 @@ typedef struct RTP_UDP{
     uint32_t cport_to;      /* client port to   */
     uint32_t sport_from;    /* server port from */
     uint32_t sport_to;      /* server port to   */
-    uint8_t unicast;
-    uint8_t mode;
-    uint8_t reserve[2];
+    char unicast;
+    char mode;
+    char reserve[2];
 }RtpUdp;
 
 typedef struct RTSPSESSION{
@@ -42,11 +42,11 @@ typedef struct RTSPSESSION{
         RtpUdp    udp;
         RtpTcp    tcp;
     }transport;
-    int8_t  sessid[16];
-    int8_t  url[128];
-    int8_t  ip[16];
-    int8_t  trans;      /* RTP/AVP/UDP or RTP/AVP/TCP */
-    int8_t  reserve[3];
+    char  sessid[16];
+    char  url[128];
+    char  ip[16];
+    char  trans;      /* RTP/AVP/UDP or RTP/AVP/TCP */
+    char  reserve[3];
 }RtspSession;
 
 int32_t RtspOptionsMsg(RtspSession *sess);

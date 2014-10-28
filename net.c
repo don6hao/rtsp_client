@@ -15,7 +15,7 @@
 
 #include "net.h"
 
-int32_t RtspTcpConnect(int8_t *ip, uint32_t port)
+int32_t RtspTcpConnect(char *ip, uint32_t port)
 {
     int32_t res;
     int32_t sock_fd;
@@ -57,7 +57,7 @@ int32_t RtspTcpConnect(int8_t *ip, uint32_t port)
 
 
 /* Connect to a UDP socket server and returns the file descriptor */
-int32_t RtspUdpConnect(int8_t *ip, uint32_t port)
+int32_t RtspUdpConnect(char *ip, uint32_t port)
 {
     int32_t res;
     int32_t sock_fd;
@@ -112,7 +112,7 @@ int32_t RtspSocketCork(int32_t fd, int32_t state)
     return setsockopt(fd, IPPROTO_TCP, TCP_CORK, &state, sizeof(state));
 }
 
-int32_t RtspTcpSendMsg(int32_t fd, int8_t *buf, uint32_t size)
+int32_t RtspTcpSendMsg(int32_t fd, char *buf, uint32_t size)
 {
     int32_t num = 0x00;
     num = send(fd, buf, size, 0);
@@ -121,7 +121,7 @@ int32_t RtspTcpSendMsg(int32_t fd, int8_t *buf, uint32_t size)
 }
 
 
-int32_t RtspTcpRcvMsg(int32_t fd, int8_t *buf, uint32_t size)
+int32_t RtspTcpRcvMsg(int32_t fd, char *buf, uint32_t size)
 {
     int32_t num = recv(fd, buf, size-1, 0);
     return num;

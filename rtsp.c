@@ -16,11 +16,11 @@ inline static void RtspIncreaseCseq(RtspSession *sess)
     return;
 }
 
-int32_t RtspResponseStatus(int8_t *response, int8_t **error)
+int32_t RtspResponseStatus(char *response, char **error)
 {
     int32_t size = 256, err_size = 0x00;
     int32_t offset = sizeof(RTSP_RESPONSE) - 1;
-    int8_t buf[8], *sep = NULL, *eol = NULL;
+    char buf[8], *sep = NULL, *eol = NULL;
     *error = NULL;
 
     if (strncmp((const char*)response, (const char*)RTSP_RESPONSE, offset) != 0) {
@@ -29,7 +29,7 @@ int32_t RtspResponseStatus(int8_t *response, int8_t **error)
         return -1;
     }
 
-    sep = (int8_t *)strchr((const char *)response+offset, ' ');
+    sep = strchr((const char *)response+offset, ' ');
     if (!sep) {
         *error = calloc(1, size);
         snprintf((char *)*error, size, "Invalid RTSP response format");
@@ -58,8 +58,8 @@ int32_t RtspOptionsMsg(RtspSession *sess)
     int32_t ret = True;
     int32_t status;
     int32_t size = 4096;
-    int8_t *err = NULL;
-    int8_t buf[size];
+    char *err = NULL;
+    char buf[size];
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
@@ -109,15 +109,15 @@ int32_t RtspOptionsMsg(RtspSession *sess)
     return ret;
 }
 
-static int32_t ParseSdpProto(int8_t *buf, uint32_t size)
+static int32_t ParseSdpProto(char *buf, uint32_t size)
 {
-    int8_t *p = strstr(buf, "\r\n\r\n");
+    char *p = strstr(buf, "\r\n\r\n");
     if (!p) {
         return -1;
     }
 
     /*[> Create buffer for DSP <]*/
-    /*int8_t *sdp = calloc(1, size+1);*/
+    /*char *sdp = calloc(1, size+1);*/
     /*memset(sdp, '\0', size+1);*/
     /*strcpy(sdp, p + 4);*/
 
@@ -127,7 +127,7 @@ static int32_t ParseSdpProto(int8_t *buf, uint32_t size)
         /*return False;*/
     /*}*/
 
-    /*int8_t *end = strchr(p, '\r');*/
+    /*char *end = strchr(p, '\r');*/
     /*if (!end) {*/
         /*return False;*/
     /*}*/
@@ -145,9 +145,8 @@ int32_t RtspDescribeMsg(RtspSession *sess)
     int32_t ret = True;
     int32_t status;
     int32_t size = 4096;
-    int8_t *p, *end;
-    int8_t *err;
-    int8_t buf[size];
+    char *err;
+    char buf[size];
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
@@ -202,9 +201,9 @@ int32_t RtspDescribeMsg(RtspSession *sess)
     return ret;
 }
 
-static int32_t ParseTransport(int8_t *buf, uint32_t size, RtspSession *sess)
+static int32_t ParseTransport(char *buf, uint32_t size, RtspSession *sess)
 {
-    int8_t *p = strstr(buf, "Transport: ");
+    char *p = strstr(buf, "Transport: ");
     if (!p) {
         RTSP_INFO("SETUP: Error, Transport header not found\n");
 #ifdef RTSP_DEBUG
@@ -213,16 +212,16 @@ static int32_t ParseTransport(int8_t *buf, uint32_t size, RtspSession *sess)
         return False;
     }
 
-    int8_t *sep = strchr(p, ';');
+    char *sep = strchr(p, ';');
     if (NULL == sep)
         return False;
     return True;
 }
 
-static int32_t ParseSessionID(int8_t *buf, uint32_t size, RtspSession *sess)
+static int32_t ParseSessionID(char *buf, uint32_t size, RtspSession *sess)
 {
     /* Session ID */
-    int8_t *p = strstr(buf, SETUP_SESSION);
+    char *p = strstr(buf, SETUP_SESSION);
     if (!p) {
         RTSP_INFO("SETUP: Session header not found\n");
 #ifdef RTSP_DEBUG
@@ -230,7 +229,7 @@ static int32_t ParseSessionID(int8_t *buf, uint32_t size, RtspSession *sess)
 #endif
         return False;
     }
-    int8_t *sep = strchr((const char *)p, ';');
+    char *sep = strchr((const char *)p, ';');
     if (NULL == sep){
         sep = strchr((const char *)p, '\r');
     }
@@ -245,15 +244,9 @@ static int32_t ParseSessionID(int8_t *buf, uint32_t size, RtspSession *sess)
 int32_t RtspSetupMsg(RtspSession *sess)
 {
     int32_t num, ret = True, status;
-    int32_t field_size = 16, size = 4096;
-    int32_t client_port_from = -1;
-    int32_t client_port_to = -1;
-    int32_t server_port_from = -1;
-    int32_t server_port_to = -1;
-    int32_t session_id;
-    int8_t *p, *sep, *err;
-    int8_t buf[size];
-    int8_t field[field_size];
+    int32_t size = 4096;
+    char *err;
+    char buf[size];
     int32_t sock = sess->sockfd;
 
 #ifndef RTSP_DEBUG
@@ -311,7 +304,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
 int32_t RtspPlayMsg(RtspSession *sess)
 {
     int32_t num, ret = True, status, size=4096;
-    int8_t  *err, buf[size];
+    char  *err, buf[size];
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG

@@ -2,45 +2,48 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "rtspType.h"
 #include "rtspClient.h"
 #include "net.h"
 
-uint32_t ParseUrl(int8_t *url, RtspClientSession *cses)
+uint32_t ParseUrl(char *url, RtspClientSession *cses)
 {
     uint32_t offset = sizeof(PROTOCOL_PREFIX) - 1;
-    int8_t *pos = NULL, buf[8];
+    char *pos = NULL, buf[8];
     uint32_t len = 0x00;
 
     RtspSession *sess = &cses->sess;
     //get host
-    pos = strchr(url+offset, ':');
+    pos = (char *)strchr((const char *)(url+offset), ':');
     if (NULL == pos){
-        pos = strchr(url+offset, '/');
+        pos = (char *)strchr((const char *)(url+offset), '/');
         if (NULL == pos)    return False;
     }
     len  = (pos-url)-offset;
-    strncpy(sess->ip, url+offset, len);
+    strncpy((char *)sess->ip, (const char *)(url+offset), len);
     sess->ip[len] = '\0';
 
 
     //get port
-    pos = strchr(url+offset, ':');
+    pos = (char *)strchr((const char *)(url+offset), ':');
     if (NULL != pos){
         len = pos-url+1;
-        pos = strchr(url+len, '/');
+        pos = (char *)strchr((const char *)(url+len), '/');
         if (NULL == pos)    return False;
 
         uint32_t size = (pos-url)-len;
-        if (size > sizeof(buf)False){
+        if (size > sizeof(buf)){
             fprintf(stderr, "Error: Invalid port\n");
             return False;
         }
         pos = url+len; //指向:符号
-        strncpy(buf, pos, size);
-        sess->port = atol(buf); //Note测试port的范围大小
+        strncpy((char *)buf, (const char *)pos, size);
+        sess->port = atol((const char *)buf); //Note测试port的范围大小
     }
 
-    strncpy(sess->url, url, strlen(url) > sizeof(sess->url) ? sizeof(sess->url) : strlen(url));
+    strncpy((char *)sess->url, (const char *)url, \
+            strlen((const char *)url) > sizeof(sess->url) ? \
+            sizeof(sess->url) : strlen((const char *)url));
 #ifdef RTSP_DEBUG
     printf("Host|Port : %s:%d\n", sess->host, sess->port);
 #endif

@@ -22,15 +22,15 @@ a=control:streamid=0 //streamid＝0表示视频流用的是通道0
 typedef struct SDP_MEDIA{
     int32_t port;
     int32_t num;    /* number of ports */
-    int8_t type;    /*video or audio*/
-    int8_t protocl; /* RTP/AVP or RTP/TCP/AVP */
-    int8_t format;
-    int8_t reserve;
+    char type;    /*video or audio*/
+    char protocl; /* RTP/AVP or RTP/TCP/AVP */
+    char format;
+    char reserve;
 }SdpMedia;
 
 typedef struct SDP_RTPMAP{
     int32_t payload;
-    int8_t encodename[16];
+    char encodename[16];
     int32_t clockrate;
     int32_t param; /* 视屏流没有编码参数 */
 }SdpRtpMap;
@@ -41,9 +41,9 @@ typedef struct SDP_ATTRIBUTES{
 }SdpAttributes;
 
 typedef struct RTSP_SDP{
-    int8_t *version;
-    int8_t *owner;
-    int8_t *name;
+    char *version;
+    char *owner;
+    char *name;
     SdpMedia        *media;
     SdpRtpMap       *map;
     SdpAttributes   *att;
@@ -55,7 +55,7 @@ typedef struct RTSP_CLIENT_SESSION{
 }RtspClientSession;
 
 
-uint32_t ParseUrl(int8_t *url, RtspClientSession *cses);
+uint32_t ParseUrl(char *url, RtspClientSession *cses);
 int32_t RtspEventLoop(RtspClientSession *csess);
 RtspClientSession* InitRtspClientSession();
 void DeleteRtspClientSession(RtspClientSession *csess);

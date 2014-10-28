@@ -28,7 +28,7 @@ static void help(int status)
 int32_t main(int argc, char **argv)
 {
     int32_t opt;
-    int8_t *url = NULL;
+    char *url = NULL;
     static const struct option long_opts[] = {
                             { "url", required_argument, NULL, 'u'},
                             { "help", no_argument, NULL, 'h'},
