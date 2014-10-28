@@ -31,7 +31,7 @@ uint32_t ParseUrl(int8_t *url, RtspClientSession *cses)
         if (NULL == pos)    return False;
 
         uint32_t size = (pos-url)-len;
-        if (size > sizeof(buf)-1){
+        if (size > sizeof(buf)False){
             fprintf(stderr, "Error: Invalid port\n");
             return False;
         }
@@ -55,26 +55,34 @@ int32_t RtspEventLoop(RtspClientSession *csess)
     int32_t fd = RtspTcpConnect(sess->ip, sess->port);
     if (fd <= 0x00){
         fprintf(stderr, "Error: RtspConnect.\n");
-        return -1;
+        return False;
     }
 
     sess->sockfd = fd;
     int32_t ret = RtspOptionsMsg(sess);
-    if (0x00 != ret){
+    if (False == ret){
         fprintf(stderr, "Error: RtspOptionsMsg.\n");
-        return -1;
+        return False;
     }
 
     ret = RtspDescribeMsg(sess);
-    if (0x00 != ret){
+    if (False == ret){
         fprintf(stderr, "Error: RtspDescribeMsg.\n");
-        return -1;
+        return False;
     }
 
-    /*RtspSetupMsg();*/
-    /*RtspPlayMsg();*/
+    if (False == RtspSetupMsg(sess)){
+        fprintf(stderr, "Error: RtspSetupMsg.\n");
+        return False;
+    }
 
-    return 0x00;
+
+    if (False == RtspPlayMsg(sess)){
+        fprintf(stderr, "Error: RtspPlayMsg.\n");
+        return False;
+    }
+
+    return True;
 }
 
 RtspClientSession* InitRtspClientSession()

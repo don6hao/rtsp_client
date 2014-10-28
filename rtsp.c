@@ -23,21 +23,21 @@ int32_t RtspResponseStatus(int8_t *response, int8_t **error)
     int8_t buf[8], *sep = NULL, *eol = NULL;
     *error = NULL;
 
-    if (strncmp(response, RTSP_RESPONSE, offset) != 0) {
+    if (strncmp((const char*)response, (const char*)RTSP_RESPONSE, offset) != 0) {
         *error = calloc(1, size);
-        snprintf(*error, size, "Invalid RTSP response format");
+        snprintf((char *)*error, size, "Invalid RTSP response format");
         return -1;
     }
 
-    sep = strchr(response + offset, ' ');
+    sep = (int8_t *)strchr((const char *)response+offset, ' ');
     if (!sep) {
         *error = calloc(1, size);
-        snprintf(*error, size, "Invalid RTSP response format");
+        snprintf((char *)*error, size, "Invalid RTSP response format");
         return -1;
     }
 
     memset(buf, '\0', sizeof(buf));
-    strncpy(buf, response + offset, sep - response - offset);
+    strncpy((char *)buf, (const char *)(response+offset), sep-response-offset);
 
     eol = strchr(response, '\r');
     err_size = (eol - response) - offset - 1 - strlen(buf);
@@ -55,7 +55,7 @@ int32_t RtspResponseStatus(int8_t *response, int8_t **error)
 int32_t RtspOptionsMsg(RtspSession *sess)
 {
     int32_t num;
-    int32_t ret = 0x00;
+    int32_t ret = True;
     int32_t status;
     int32_t size = 4096;
     int8_t *err = NULL;
@@ -70,7 +70,7 @@ int32_t RtspOptionsMsg(RtspSession *sess)
     num = snprintf(buf, size, CMD_OPTIONS, sess->ip, sess->port, sess->cseq);
     if (num < 0x00){
         fprintf(stderr, "%s : snprintf error!\n", __func__);
-        return -1;
+        return False;
     }
 #ifdef RTSP_DEBUG
     DEBUG_REQ(buf);
@@ -78,7 +78,7 @@ int32_t RtspOptionsMsg(RtspSession *sess)
     num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
-        return -1;
+        return False;
     }
 #ifdef RTSP_DEBUG
     printf("OPTIONS: request sent\n");
@@ -88,7 +88,7 @@ int32_t RtspOptionsMsg(RtspSession *sess)
     num = RtspTcpRcvMsg(sock, buf, size-1);
     if (num <= 0) {
         printf("Error: Server did not respond properly, closing...");
-        return -1;
+        return False;
     }
 
     status = RtspResponseStatus(buf, &err);
@@ -97,7 +97,7 @@ int32_t RtspOptionsMsg(RtspSession *sess)
     }
     else{
         printf("OPTIONS: response status %i: %s\n", status, err);
-        ret = -1;
+        ret = False;
     }
     if (NULL != err)
         free(err);
@@ -230,9 +230,9 @@ static int32_t ParseSessionID(int8_t *buf, uint32_t size, RtspSession *sess)
 #endif
         return False;
     }
-    int8_t *sep = strchr(p, ';');
+    int8_t *sep = strchr((const char *)p, ';');
     if (NULL == sep){
-        sep = strchr(p, '\r');
+        sep = strchr((const char *)p, '\r');
     }
     memset(sess->sessid, '\0', sizeof(sess->sessid));
     strncpy(sess->sessid, p+sizeof(SETUP_SESSION)-1, sep-p-sizeof(SETUP_SESSION)+1);
@@ -244,7 +244,7 @@ static int32_t ParseSessionID(int8_t *buf, uint32_t size, RtspSession *sess)
 
 int32_t RtspSetupMsg(RtspSession *sess)
 {
-    int32_t num, ret = 0, status;
+    int32_t num, ret = True, status;
     int32_t field_size = 16, size = 4096;
     int32_t client_port_from = -1;
     int32_t client_port_to = -1;
@@ -264,7 +264,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
     num = snprintf(buf, size, CMD_SETUP, sess->url, sess->cseq);
     if (num < 0x00){
         fprintf(stderr, "%s : snprintf error!\n", __func__);
-        return -1;
+        return False;
     }
 #ifdef RTSP_DEBUG
     DEBUG_REQ(buf);
@@ -272,7 +272,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
     num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
-        return -1;
+        return False;
     }
 
 #ifdef RTSP_DEBUG
@@ -282,7 +282,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
     num = RtspTcpRcvMsg(sock, buf, size-1);
     if (num <= 0) {
         fprintf(stderr, "Error: Server did not respond properly, closing...");
-        return -1;
+        return False;
     }
 
     status = RtspResponseStatus(buf, &err);
@@ -296,7 +296,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
 #ifdef RTSP_DEBUG
         DEBUG_RES(buf);
 #endif
-        return -1;
+        return False;
     }
 
     /* Fill session data */

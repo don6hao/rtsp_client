@@ -29,7 +29,7 @@ int32_t RtspTcpConnect(int8_t *ip, uint32_t port)
 
     remote = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
     remote->sin_family = AF_INET;
-    res = inet_pton(AF_INET, ip, (void *) (&(remote->sin_addr.s_addr)));
+    res = inet_pton(AF_INET, (const char*)ip, (void *) (&(remote->sin_addr.s_addr)));
 
     if (res < 0) {
 	    fprintf(stderr, "Error: Can't set remote->sin_addr.s_addr\n");
@@ -46,7 +46,7 @@ int32_t RtspTcpConnect(int8_t *ip, uint32_t port)
     if (connect(sock_fd,
                 (struct sockaddr *) remote, sizeof(struct sockaddr)) == -1) {
         close(sock_fd);
-        fprintf(stderr, "Error connecting to %s:%lu\n", ip, port);
+        fprintf(stderr, "Error connecting to %s:%d\n", ip, port);
         free(remote);
         return -1;
     }
@@ -71,7 +71,7 @@ int32_t RtspUdpConnect(int8_t *ip, uint32_t port)
 
     remote = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
     remote->sin_family = AF_INET;
-    res = inet_pton(AF_INET, ip, (void *) (&(remote->sin_addr.s_addr)));
+    res = inet_pton(AF_INET, (const char*)ip, (void *) (&(remote->sin_addr.s_addr)));
 
     if (res < 0) {
 	    fprintf(stderr, "Error: Can't set remote->sin_addr.s_addr\n");
@@ -88,7 +88,7 @@ int32_t RtspUdpConnect(int8_t *ip, uint32_t port)
     if (connect(sock_fd,
                 (struct sockaddr *) remote, sizeof(struct sockaddr)) == -1) {
         close(sock_fd);
-        fprintf(stderr, "Error connecting to %s:%lu\n", ip, port);
+        fprintf(stderr, "Error connecting to %s:%d\n", ip, port);
         free(remote);
         return -1;
     }
