@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+#include "rtspType.h"
 #include "rtspClient.h"
 
 static void help(int status);
@@ -24,10 +25,10 @@ static void help(int status)
 }
 
 
-int main(int argc, char **argv)
+int32_t main(int argc, char **argv)
 {
-    int opt;
-    char *url = NULL;
+    int32_t opt;
+    int8_t *url = NULL;
     static const struct option long_opts[] = {
                             { "url", required_argument, NULL, 'u'},
                             { "help", no_argument, NULL, 'h'},
@@ -53,21 +54,21 @@ int main(int argc, char **argv)
         return 0x00;
     }
 
-    RtspClientSession *sess = InitRtspClientSession();
-    if (False == ParseUrl(url, sess)){
+    RtspClientSession *cses = InitRtspClientSession();
+    if ((NULL == cses) || (False == ParseUrl(url, cses))){
         fprintf(stderr, "Error : Invalid Url Address.\n");
         return 0x00;
     }
 
     /* RTSP Event Loop */
     while(1){
-        RtspEventLoop(sess);
+        RtspEventLoop(cses);
         printf("RTSP Event Loop stopped, waiting 5 seconds...\n");
         sleep(5);
         break;
     }
 
-    DeleteRtspClientSession(sess);
+    DeleteRtspClientSession(cses);
     return 0x00;
 }
 

@@ -1,11 +1,17 @@
-#include "rtspClient.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
-void ParseUrl(int8_t *url, RtspClientSession *sess)
+#include "rtspClient.h"
+#include "net.h"
+
+uint32_t ParseUrl(int8_t *url, RtspClientSession *cses)
 {
-    uint32_t offset = sizeof(PROTOCOL+PREFIX) - 1;
-    int8_t *pos = NULL;
+    uint32_t offset = sizeof(PROTOCOL_PREFIX) - 1;
+    int8_t *pos = NULL, buf[8];
     uint32_t len = 0x00;
 
+    RtspSession *sess = &cses->sess;
     //get host
     pos = strchr(url+offset, ':');
     if (NULL == pos){
@@ -13,8 +19,8 @@ void ParseUrl(int8_t *url, RtspClientSession *sess)
         if (NULL == pos)    return False;
     }
     len  = (pos-url)-offset;
-    strncpy(sess->host, url+offset, len);
-    sess->host[len] = '\0';
+    strncpy(sess->ip, url+offset, len);
+    sess->ip[len] = '\0';
 
 
     //get port
@@ -34,6 +40,7 @@ void ParseUrl(int8_t *url, RtspClientSession *sess)
         sess->port = atol(buf); //Note测试port的范围大小
     }
 
+    strncpy(sess->url, url, strlen(url) > sizeof(sess->url) ? sizeof(sess->url) : strlen(url));
 #ifdef RTSP_DEBUG
     printf("Host|Port : %s:%d\n", sess->host, sess->port);
 #endif
@@ -42,9 +49,10 @@ void ParseUrl(int8_t *url, RtspClientSession *sess)
 }
 
 
-int32_t RtspEventLoop(RtspClientSession *sess)
+int32_t RtspEventLoop(RtspClientSession *csess)
 {
-    int32_t fd = RtspTcpConnect(sess->url, sess->port);
+    RtspSession *sess = &csess->sess;
+    int32_t fd = RtspTcpConnect(sess->ip, sess->port);
     if (fd <= 0x00){
         fprintf(stderr, "Error: RtspConnect.\n");
         return -1;
@@ -63,9 +71,30 @@ int32_t RtspEventLoop(RtspClientSession *sess)
         return -1;
     }
 
-    RtspSetupMsg();
-    RtspPlayMsg();
+    /*RtspSetupMsg();*/
+    /*RtspPlayMsg();*/
 
     return 0x00;
 }
 
+RtspClientSession* InitRtspClientSession()
+{
+    RtspClientSession *sess = (RtspClientSession *)calloc(1, sizeof(RtspClientSession));
+
+    if (NULL == sess)
+        return NULL;
+
+    return sess;
+}
+
+void DeleteRtspClientSession(RtspClientSession *cses)
+{
+    if (NULL == cses)
+        return;
+
+    RtspSession *sess = &cses->sess;
+    RtspCloseScokfd(sess->sockfd);
+    free(sess);
+    sess = NULL;
+    return;
+}
