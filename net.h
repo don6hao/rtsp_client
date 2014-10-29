@@ -11,5 +11,7 @@ int32_t RtspTcpConnect(char *ip, uint32_t port);
 int32_t RtspTcpSendMsg(int32_t fd, char *buf, uint32_t size);
 int32_t RtspTcpRcvMsg(int32_t fd, char *buf, uint32_t size);
 void RtspCloseScokfd(int32_t sockfd);
+int32_t RtspRecvUdpRtpData(int32_t fd, char *buf, uint32_t size);
+int32_t RtspCreateUdpServer(char *ip, uint32_t port);
 
 #endif

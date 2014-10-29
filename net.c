@@ -55,6 +55,25 @@ int32_t RtspTcpConnect(char *ip, uint32_t port)
     return sock_fd;
 }
 
+int32_t RtspCreateUdpServer(char *ip, uint32_t port)
+{
+    int32_t sockfd;
+    struct sockaddr_in addr;
+    if((sockfd=socket(AF_INET,SOCK_DGRAM,0))<0){
+        perror ("socket");
+        return -1;
+    }
+    memset(&addr, 0x00, sizeof(addr));
+    addr.sin_family=AF_INET;
+    addr.sin_port=htons(port);
+    addr.sin_addr.s_addr=htonl(INADDR_ANY) ;
+    if (bind(sockfd, (struct sockaddr *)&addr, sizeof(addr))<0){
+        perror("connect");
+        return -1;
+    }
+
+    return sockfd;
+}
 
 /* Connect to a UDP socket server and returns the file descriptor */
 int32_t RtspUdpConnect(char *ip, uint32_t port)
@@ -132,4 +151,18 @@ void RtspCloseScokfd(int32_t sockfd)
 {
     close(sockfd);
     return;
+}
+
+
+int32_t RtspRecvUdpRtpData(int32_t fd, char *buf, uint32_t size)
+{
+    int32_t num = 0x00;
+    struct sockaddr_in addr;
+    socklen_t addr_len = sizeof(struct sockaddr_in);
+    memset(buf,0x00, size);
+    num = recvfrom(fd, buf, size, 0, (struct sockaddr *)&addr, &addr_len);
+    /*显示client端的网络地址*/
+    printf("receive from %s\n" , inet_ntoa( addr.sin_addr));
+
+    return num;
 }

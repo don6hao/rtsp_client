@@ -6,6 +6,7 @@
 #include "rtspType.h"
 #include "rtspClient.h"
 #include "net.h"
+#include "tpool.h"
 
 uint32_t ParseUrl(char *url, RtspClientSession *cses)
 {
@@ -52,6 +53,27 @@ uint32_t ParseUrl(char *url, RtspClientSession *cses)
     return True;
 }
 
+void* RtspHandleUdpConnect(void* args)
+{
+    RtspClientSession *csess = (RtspClientSession *)(args);
+    RtspSession *sess = &csess->sess;
+
+    int32_t rtpfd = RtspCreateUdpServer(sess->ip, sess->transport.udp.cport_from);
+    /*int32_t rtcpfd = RtspUdpConnect(sess->ip, sess->transport.udp.sport_to);*/
+    int32_t num = 0x00, size = 4096;
+    char    buf[size];
+#ifdef RTSP_DEBUG
+    printf("rtp fd : %d\n", rtpfd);
+    printf("ip, port : %s, %d\n", sess->ip, sess->transport.udp.cport_from);
+#endif
+    do{
+        num = RtspRecvUdpRtpData(rtpfd, buf, size-1);
+        memset(buf, 0x00, size);
+        printf("recv data length : %d\n", num);
+    }while(num > 0);
+
+    return NULL;
+}
 
 void* RtspEventLoop(void* args)
 {
@@ -63,8 +85,23 @@ void* RtspEventLoop(void* args)
         return NULL;
     }
 
+    pthread_t transid = 0x00;
     sess->sockfd = fd;
-    RtspStatusMachine(sess);
+    do{
+        if (False == RtspStatusMachine(sess))
+            break;
+        if (RTSP_PLAY == sess->status){
+            if ((0x00 == transid) && (RTP_AVP_UDP == sess->trans)){
+                transid = RtspCreateThread(RtspHandleUdpConnect, (void *)sess);
+                if (transid <= 0x00){
+                    fprintf(stderr, "RtspCreateThread Error!\n");
+                    sleep(10);
+                    continue;
+                }
+            }
+        }
+    }while(1);
+
     return NULL;
 }
 
@@ -76,6 +113,7 @@ RtspClientSession* InitRtspClientSession()
         return NULL;
 
     RtspSession *sess = &cses->sess;
+    sess->trans  = RTP_AVP_UDP;
     sess->status = RTSP_START;
     return cses;
 }
