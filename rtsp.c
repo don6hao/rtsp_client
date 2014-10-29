@@ -533,10 +533,8 @@ int32_t RtspStatusMachine(RtspSession *sess)
                 }
                 sess->status = RTSP_QUIT;
                 break;
-            case RTSP_QUIT:
-                fprintf(stderr, "rtsp status : RTSP_QUIT!\n");
-                return True;
             default:
+                printf("unkown status!\n");
                 break;
         }
         usleep(100000);
