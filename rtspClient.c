@@ -115,12 +115,12 @@ void* RtspEventLoop(void* args)
             if (0x00 == transid){
                 if (RTP_AVP_UDP == sess->trans){
                     transid = RtspCreateThread(RtspHandleUdpConnect, (void *)sess);
+                    if (transid <= 0x00){
+                        fprintf(stderr, "RtspCreateThread Error!\n");
+                        continue;
+                    }
                 }else if (RTP_AVP_TCP == sess->trans){
-                    transid = RtspCreateThread(RtspHandleTcpConnect, (void *)sess);
-                }
-                if (transid <= 0x00){
-                    fprintf(stderr, "RtspCreateThread Error!\n");
-                    continue;
+                    RtspHandleTcpConnect((void *)sess);
                 }
             }
         }
