@@ -64,42 +64,20 @@ void* RtspEventLoop(void* args)
     }
 
     sess->sockfd = fd;
-    int32_t ret = RtspOptionsMsg(sess);
-    if (False == ret){
-        fprintf(stderr, "Error: RtspOptionsMsg.\n");
-        return NULL;
-    }
-
-    sleep(1);
-    ret = RtspDescribeMsg(sess);
-    if (False == ret){
-        fprintf(stderr, "Error: RtspDescribeMsg.\n");
-        return NULL;
-    }
-
-    usleep(1000);
-    if (False == RtspSetupMsg(sess)){
-        fprintf(stderr, "Error: RtspSetupMsg.\n");
-        return NULL;
-    }
-
-    usleep(1000);
-    if (False == RtspPlayMsg(sess)){
-        fprintf(stderr, "Error: RtspPlayMsg.\n");
-        return NULL;
-    }
-
+    RtspStatusMachine(sess);
     return NULL;
 }
 
 RtspClientSession* InitRtspClientSession()
 {
-    RtspClientSession *sess = (RtspClientSession *)calloc(1, sizeof(RtspClientSession));
+    RtspClientSession *cses = (RtspClientSession *)calloc(1, sizeof(RtspClientSession));
 
-    if (NULL == sess)
+    if (NULL == cses)
         return NULL;
 
-    return sess;
+    RtspSession *sess = &cses->sess;
+    sess->status = RTSP_START;
+    return cses;
 }
 
 void DeleteRtspClientSession(RtspClientSession *cses)

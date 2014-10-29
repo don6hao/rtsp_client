@@ -10,6 +10,7 @@
 #define CMD_DESCRIBE      "DESCRIBE %s RTSP/1.0\r\nCSeq: %i\r\nAccept: application/sdp\r\n\r\n"
 #define CMD_SETUP         "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nTransport: RTP/AVP/TCP;unicast;interleaved=0-1\r\n\r\n"
 #define CMD_PLAY          "PLAY %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\nRange: npt=0.00-\r\n\r\n"
+#define CMD_TEARDOWN      "TEARDOWN %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\n\r\n"
 
 #define SETUP_SESSION      "Session: "
 #define SETUP_TRNS_CLIENT  "client_port="
@@ -20,6 +21,20 @@
 #define SDP_A_RTPMAP       "a=rtpmap:"
 #define SDP_A_FMTP         "a=fmtp:"
 #define SDP_A_CONTROL      "a=control:"
+
+typedef enum{
+    RTSP_START = 0x0F,
+    RTSP_OPTIONS,
+    RTSP_DESCRIBE,
+    RTSP_SETUP,
+    RTSP_PLAY,
+    RTSP_PAUSE,
+    RTSP_GET_PARAMETER,
+    RTSP_SET_PARAMETER,
+    RTSP_REDIRECT,
+    RTSP_TEARDOWN,
+    RTSP_QUIT
+}EN_RTSP_STATUS;
 
 typedef struct RTP_TCP{
     char  start;          /* interleaved start */
@@ -52,12 +67,15 @@ typedef struct RTSPSESSION{
     char  url[128];
     char  ip[16];
     char  trans;      /* RTP/AVP/UDP or RTP/AVP/TCP */
-    char  reserve[3];
+    char  status;
+    char  reserve[2];
 }RtspSession;
 
 int32_t RtspOptionsMsg(RtspSession *sess);
 int32_t RtspDescribeMsg(RtspSession *sess);
 int32_t RtspSetupMsg(RtspSession *sess);
 int32_t RtspPlayMsg(RtspSession *sess);
+int32_t RtspTeardownMsg(RtspSession *sess);
+int32_t RtspStatusMachine(RtspSession *sess);
 
 #endif

@@ -69,11 +69,10 @@ int32_t main(int argc, char **argv)
     }
 
 
-    /* RTSP Event Loop */
     do{
         pthread_join(rtspId, NULL);
         break;
-    }while(1);
+    }while(0);
 
     printf("RTSP Event Loop stopped, waiting 5 seconds...\n");
     DeleteRtspClientSession(cses);

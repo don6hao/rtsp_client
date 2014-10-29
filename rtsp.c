@@ -344,3 +344,100 @@ int32_t RtspPlayMsg(RtspSession *sess)
     RtspIncreaseCseq(sess);
     return ret;
 }
+
+
+int32_t RtspTeardownMsg(RtspSession *sess)
+{
+    int32_t num, ret = True, status, size=4096;
+    char  *err, buf[size];
+    int32_t sock = sess->sockfd;
+
+#ifdef RTSP_DEBUG
+    printf("TEARDOWN: command\n");
+#endif
+    memset(buf, '\0', sizeof(buf));
+    num = snprintf(buf, size, CMD_TEARDOWN, sess->url, sess->cseq, sess->sessid);
+    if (num < 0x00){
+        fprintf(stderr, "%s : snprintf error!\n", __func__);
+        return False;
+    }
+    num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
+    if (num < 0){
+        fprintf(stderr, "%s : Send Error\n", __func__);
+        return False;
+    }
+
+#ifdef RTSP_DEBUG
+    printf("TEARDOWN: request sent\n");
+#endif
+
+    memset(buf, '\0', sizeof(buf));
+    num = RtspTcpRcvMsg(sock, buf, size-1);
+    if (num <= 0) {
+        fprintf(stderr, "Error: Server did not respond properly, closing...");
+        return False;
+    }
+
+    status = RtspResponseStatus(buf, &err);
+    if (status == 200) {
+        printf("TEARDOWN: response status %i (%i bytes)\n", status, num);
+    }
+    else {
+        fprintf(stderr, "TEARDOWN: response status %i: %s\n", status, err);
+        ret = False;
+    }
+
+    RtspIncreaseCseq(sess);
+    return ret;
+}
+
+int32_t RtspStatusMachine(RtspSession *sess)
+{
+    do{
+        switch(sess->status){
+            case RTSP_START:
+                if (False == RtspOptionsMsg(sess)){
+                    fprintf(stderr, "Error: RtspOptionsMsg.\n");
+                    return False;
+                }
+                sess->status = RTSP_OPTIONS;
+                break;
+            case RTSP_OPTIONS:
+                if (False == RtspDescribeMsg(sess)){
+                    fprintf(stderr, "Error: RtspDescribeMsg.\n");
+                    return False;
+                }
+                sess->status = RTSP_DESCRIBE;
+                break;
+            case RTSP_DESCRIBE:
+                if (False == RtspSetupMsg(sess)){
+                    fprintf(stderr, "Error: RtspSetupMsg.\n");
+                    return False;
+                }
+                sess->status = RTSP_SETUP;
+                break;
+            case RTSP_SETUP:
+                if (False == RtspPlayMsg(sess)){
+                    fprintf(stderr, "Error: RtspPlayMsg.\n");
+                    return False;
+                }
+                sess->status = RTSP_PLAY;
+                break;
+            case RTSP_TEARDOWN:
+                if (False == RtspTeardownMsg(sess)){
+                    fprintf(stderr, "Error: RtspTeardownMsg.\n");
+                    return False;
+                }
+                sess->status = RTSP_QUIT;
+                break;
+            case RTSP_QUIT:
+                fprintf(stderr, "rtsp status : RTSP_QUIT!\n");
+                return True;
+            default:
+                break;
+        }
+        usleep(1000);
+    }while(1);
+
+    return True;
+}
