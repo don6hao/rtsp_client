@@ -53,42 +53,43 @@ uint32_t ParseUrl(char *url, RtspClientSession *cses)
 }
 
 
-int32_t RtspEventLoop(RtspClientSession *csess)
+void* RtspEventLoop(void* args)
 {
+    RtspClientSession *csess = (RtspClientSession *)(args);
     RtspSession *sess = &csess->sess;
     int32_t fd = RtspTcpConnect(sess->ip, sess->port);
     if (fd <= 0x00){
         fprintf(stderr, "Error: RtspConnect.\n");
-        return False;
+        return NULL;
     }
 
     sess->sockfd = fd;
     int32_t ret = RtspOptionsMsg(sess);
     if (False == ret){
         fprintf(stderr, "Error: RtspOptionsMsg.\n");
-        return False;
+        return NULL;
     }
 
     sleep(1);
     ret = RtspDescribeMsg(sess);
     if (False == ret){
         fprintf(stderr, "Error: RtspDescribeMsg.\n");
-        return False;
+        return NULL;
     }
 
     usleep(1000);
     if (False == RtspSetupMsg(sess)){
         fprintf(stderr, "Error: RtspSetupMsg.\n");
-        return False;
+        return NULL;
     }
 
     usleep(1000);
     if (False == RtspPlayMsg(sess)){
         fprintf(stderr, "Error: RtspPlayMsg.\n");
-        return False;
+        return NULL;
     }
 
-    return True;
+    return NULL;
 }
 
 RtspClientSession* InitRtspClientSession()

@@ -10,9 +10,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 #include "rtspType.h"
 #include "rtspClient.h"
+#include "tpool.h"
 
 static void help(int status);
 static void help(int status)
@@ -60,14 +62,20 @@ int32_t main(int argc, char **argv)
         return 0x00;
     }
 
-    /* RTSP Event Loop */
-    while(1){
-        RtspEventLoop(cses);
-        printf("RTSP Event Loop stopped, waiting 5 seconds...\n");
-        sleep(5);
-        break;
+    pthread_t rtspId = RtspCreateThread(RtspEventLoop, (void *)cses);
+    if (rtspId < 0x00){
+        fprintf(stderr, "RtspCreateThread Error!\n");
+        return 0x00;
     }
 
+
+    /* RTSP Event Loop */
+    do{
+        pthread_join(rtspId, NULL);
+        break;
+    }while(1);
+
+    printf("RTSP Event Loop stopped, waiting 5 seconds...\n");
     DeleteRtspClientSession(cses);
     return 0x00;
 }

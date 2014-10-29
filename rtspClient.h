@@ -56,7 +56,7 @@ typedef struct RTSP_CLIENT_SESSION{
 
 
 uint32_t ParseUrl(char *url, RtspClientSession *cses);
-int32_t RtspEventLoop(RtspClientSession *csess);
+void* RtspEventLoop(void* args);
 RtspClientSession* InitRtspClientSession();
 void DeleteRtspClientSession(RtspClientSession *csess);
 
