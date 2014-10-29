@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -72,9 +73,6 @@ int32_t RtspOptionsMsg(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
-#ifdef RTSP_DEBUG
-    DEBUG_REQ(buf);
-#endif
     num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
@@ -101,41 +99,63 @@ int32_t RtspOptionsMsg(RtspSession *sess)
     }
     if (NULL != err)
         free(err);
-#ifdef RTSP_DEBUG
-    DEBUG_RES(buf);
-#endif
     RtspIncreaseCseq(sess);
 
     return ret;
 }
 
-static int32_t ParseSdpProto(char *buf, uint32_t size)
+static void GetSdpVideoAcontrol(char *buf, uint32_t size, char *url)
 {
-    char *p = strstr(buf, "\r\n\r\n");
-    if (!p) {
-        return -1;
+    char *ptr = (char *)memmem((const void*)buf, size,
+            (const void*)SDP_M_VIDEO, strlen(SDP_M_VIDEO)-1);
+    if (NULL == ptr){
+        fprintf(stderr, "Error: m=video not found!\n");
+        return;
     }
 
-    /*[> Create buffer for DSP <]*/
-    /*char *sdp = calloc(1, size+1);*/
-    /*memset(sdp, '\0', size+1);*/
-    /*strcpy(sdp, p + 4);*/
+    ptr = (char *)memmem((const void*)ptr, size,
+            (const void*)SDP_A_CONTROL, strlen(SDP_A_CONTROL)-1);
+    if (NULL == ptr){
+        fprintf(stderr, "Error: a=control not found!\n");
+        return;
+    }
 
-    /*[> sprop-parameter-sets key <]*/
-    /*p = strstr(sdp, RTP_SPROP);*/
-    /*if (!p) {*/
-        /*return False;*/
-    /*}*/
+    char *endptr = (char *)memmem((const void*)ptr, size,
+            (const void*)"\r\n", strlen("\r\n")-1);
+    if (NULL == endptr){
+        fprintf(stderr, "Error: %s not found!\n", "\r\n");
+        return;
+    }
+    ptr += strlen(SDP_A_CONTROL);
+    if ('*' == *ptr){
+        /* a=control:* */
+        printf("a=control:*\n");
+        return;
+    }else if (0x00 == memcmp((const void*)ptr, \
+                (const void*)PROTOCOL_PREFIX, \
+                strlen(PROTOCOL_PREFIX)-1)){
+            /* a=control:rtsp://ip:port/track1 */
+            memcpy((void *)url, (const void*)(ptr), (endptr-ptr));
+            url[endptr-ptr] = '\0';
+    }else{
+        /*a=control:track1*/
+        int32_t len = strlen(url);
+        url[len] = '/';
+        len++;
+        char *p = url+len;
+        memcpy((void *)p, (const void*)ptr, (endptr-ptr));
+        url[len+endptr-ptr] = '\0';
+    }
 
-    /*char *end = strchr(p, '\r');*/
-    /*if (!end) {*/
-        /*return False;*/
-    /*}*/
+    return;
+}
 
-    /*int32_t prop_size = (end - p) - sizeof(RTP_SPROP) + 1;*/
-    /**sprop = malloc(prop_size + 1);*/
-    /*memcpy(*sprop, p + sizeof(RTP_SPROP) - 1, prop_size);*/
-
+static int32_t ParseSdpProto(char *buf, uint32_t size, RtspSession *sess)
+{
+    GetSdpVideoAcontrol(buf, size, sess->url);
+#ifdef RTSP_DEBUG
+    printf("video url: %s\n", sess->url);
+#endif
     return True;
 }
 
@@ -150,7 +170,7 @@ int32_t RtspDescribeMsg(RtspSession *sess)
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
-    RTSP_INFO("DESCRIBE: command\n");
+    printf("DESCRIBE: command\n");
 #endif
 
     memset(buf, '\0', sizeof(buf));
@@ -160,9 +180,6 @@ int32_t RtspDescribeMsg(RtspSession *sess)
         return False;
     }
 
-#ifdef RTSP_DEBUG
-    DEBUG_REQ(buf);
-#endif
     num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
@@ -170,7 +187,7 @@ int32_t RtspDescribeMsg(RtspSession *sess)
     }
 
 #ifdef RTSP_DEBUG
-    RTSP_INFO("DESCRIBE: request sent\n");
+    printf("DESCRIBE: request sent\n");
 #endif
 
     memset(buf, '\0', sizeof(buf));
@@ -183,19 +200,16 @@ int32_t RtspDescribeMsg(RtspSession *sess)
 
     status = RtspResponseStatus(buf, &err);
     if (status == 200) {
-        RTSP_INFO("DESCRIBE: response status %i (%i bytes)\n", status, num);
+        printf("DESCRIBE: response status %i (%i bytes)\n", status, num);
     }
     else {
-        RTSP_INFO("DESCRIBE: response status %i: %s\n", status, err);
+        printf("DESCRIBE: response status %i: %s\n", status, err);
         ret = False;
     }
     if (NULL != err)
         free(err);
 
-    ParseSdpProto(buf, num);
-#ifdef RTSP_DEBUG
-    DEBUG_RES("%s\n", buf);
-#endif
+    ParseSdpProto(buf, num, sess);
     RtspIncreaseCseq(sess);
 
     return ret;
@@ -205,10 +219,7 @@ static int32_t ParseTransport(char *buf, uint32_t size, RtspSession *sess)
 {
     char *p = strstr(buf, "Transport: ");
     if (!p) {
-        RTSP_INFO("SETUP: Error, Transport header not found\n");
-#ifdef RTSP_DEBUG
-        DEBUG_RES(buf);
-#endif
+        printf("SETUP: Error, Transport header not found\n");
         return False;
     }
 
@@ -223,10 +234,7 @@ static int32_t ParseSessionID(char *buf, uint32_t size, RtspSession *sess)
     /* Session ID */
     char *p = strstr(buf, SETUP_SESSION);
     if (!p) {
-        RTSP_INFO("SETUP: Session header not found\n");
-#ifdef RTSP_DEBUG
-        DEBUG_RES(buf);
-#endif
+        printf("SETUP: Session header not found\n");
         return False;
     }
     char *sep = strchr((const char *)p, ';');
@@ -250,7 +258,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
     int32_t sock = sess->sockfd;
 
 #ifndef RTSP_DEBUG
-    RTSP_INFO("SETUP: command\n");
+    printf("SETUP: command\n");
 #endif
 
     memset(buf, '\0', sizeof(buf));
@@ -259,9 +267,6 @@ int32_t RtspSetupMsg(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
-#ifdef RTSP_DEBUG
-    DEBUG_REQ(buf);
-#endif
     num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
@@ -269,7 +274,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
     }
 
 #ifdef RTSP_DEBUG
-    RTSP_INFO("SETUP: request sent\n");
+    printf("SETUP: request sent\n");
 #endif
     memset(buf, '\0', sizeof(buf));
     num = RtspTcpRcvMsg(sock, buf, size-1);
@@ -280,23 +285,17 @@ int32_t RtspSetupMsg(RtspSession *sess)
 
     status = RtspResponseStatus(buf, &err);
     if (status == 200) {
-        RTSP_INFO("SETUP: response status %i (%i bytes)\n", status, num);
+        printf("SETUP: response status %i (%i bytes)\n", status, num);
         /*ParseTransport(buf, num, sess);*/
         ParseSessionID(buf, num, sess);
     }
     else {
-        RTSP_INFO("SETUP: response status %i: %s\n", status, err);
-#ifdef RTSP_DEBUG
-        DEBUG_RES(buf);
-#endif
+        printf("SETUP: response status %i: %s\n", status, err);
         return False;
     }
 
     /* Fill session data */
     sess->packetization = 1; /* FIXME: project specific value */
-#ifdef RTSP_DEBUG
-    DEBUG_RES(buf);
-#endif
     RtspIncreaseCseq(sess);
     return ret;
 }
@@ -308,7 +307,7 @@ int32_t RtspPlayMsg(RtspSession *sess)
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
-    RTSP_INFO("PLAY: command\n");
+    printf("PLAY: command\n");
 #endif
     memset(buf, '\0', sizeof(buf));
     num = snprintf(buf, size, CMD_PLAY, sess->url, sess->cseq, sess->sessid);
@@ -316,9 +315,6 @@ int32_t RtspPlayMsg(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
-#ifdef RTSP_DEBUG
-    DEBUG_REQ(buf);
-#endif
     num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
@@ -326,7 +322,7 @@ int32_t RtspPlayMsg(RtspSession *sess)
     }
 
 #ifdef RTSP_DEBUG
-    RTSP_INFO("PLAY: request sent\n");
+    printf("PLAY: request sent\n");
 #endif
 
     memset(buf, '\0', sizeof(buf));
@@ -345,9 +341,6 @@ int32_t RtspPlayMsg(RtspSession *sess)
         ret = False;
     }
 
-#ifdef RTSP_DEBUG
-    DEBUG_RES(buf);
-#endif
     RtspIncreaseCseq(sess);
     return ret;
 }

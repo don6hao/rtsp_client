@@ -10,6 +10,11 @@
 #ifndef RTPS_UTILS_H
 #define RTPS_UTILS_H
 
+#define PUT_16(p,v) ((p)[0]=((v)>>8)&0xff,(p)[1]=(v)&0xff)
+#define PUT_32(p,v) ((p)[0]=((v)>>24)&0xff,(p)[1]=((v)>>16)&0xff,(p)[2]=((v)>>8)&0xff,(p)[3]=(v)&0xff)
+#define GET_16(p) (((p)[0]<<8)|(p)[1])
+#define GET_32(p) (((p)[0]<<24)|((p)[1]<<16)|((p)[2]<<8)|(p)[3])
+
 /* ansi colors */
 #define ANSI_BOLD "\033[1m"
 #define ANSI_CYAN "\033[36m"
@@ -26,12 +31,12 @@
 #define REQ_HEADER  ANSI_BOLD ANSI_YELLOW
 
 /* Debug macros */
-#define DEBUG_REQ(...)  if (opt_verbose) {      \
+#define DEBUG_REQ(...)  if (1) {      \
   printf(REQ_HEADER);                           \
   printf(__VA_ARGS__);                          \
   printf(ANSI_RESET "\n");}
 
-#define DEBUG_RES(...)  if (opt_verbose) {                              \
+#define DEBUG_RES(...)  if (1) {                              \
     printf(RES_HEADER);                                                 \
     printf(__VA_ARGS__);                                                \
     printf(ANSI_RESET "\n");}

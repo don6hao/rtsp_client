@@ -8,12 +8,18 @@
 #define RTSP_RESPONSE     "RTSP/1.0 "
 #define CMD_OPTIONS       "OPTIONS rtsp://%s:%d RTSP/1.0\r\nCSeq: %i\r\n\r\n"
 #define CMD_DESCRIBE      "DESCRIBE %s RTSP/1.0\r\nCSeq: %i\r\nAccept: application/sdp\r\n\r\n"
-#define CMD_SETUP         "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nTransport: RTP/AVP/TCP;interleaved=0-1;\r\n\r\n"
+#define CMD_SETUP         "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nTransport: RTP/AVP/TCP;unicast;interleaved=0-1\r\n\r\n"
 #define CMD_PLAY          "PLAY %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\nRange: npt=0.00-\r\n\r\n"
 
 #define SETUP_SESSION      "Session: "
 #define SETUP_TRNS_CLIENT  "client_port="
 #define SETUP_TRNS_SERVER  "server_port="
+
+#define SDP_M_VIDEO        "m=video "
+#define SDP_M_AUDIO        "m=audio "
+#define SDP_A_RTPMAP       "a=rtpmap:"
+#define SDP_A_FMTP         "a=fmtp:"
+#define SDP_A_CONTROL      "a=control:"
 
 typedef struct RTP_TCP{
     char  start;          /* interleaved start */

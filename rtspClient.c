@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "rtspType.h"
 #include "rtspClient.h"
@@ -45,7 +46,7 @@ uint32_t ParseUrl(char *url, RtspClientSession *cses)
             strlen((const char *)url) > sizeof(sess->url) ? \
             sizeof(sess->url) : strlen((const char *)url));
 #ifdef RTSP_DEBUG
-    printf("Host|Port : %s:%d\n", sess->host, sess->port);
+    printf("Host|Port : %s:%d\n", sess->ip, sess->port);
 #endif
 
     return True;
@@ -68,18 +69,20 @@ int32_t RtspEventLoop(RtspClientSession *csess)
         return False;
     }
 
+    sleep(1);
     ret = RtspDescribeMsg(sess);
     if (False == ret){
         fprintf(stderr, "Error: RtspDescribeMsg.\n");
         return False;
     }
 
+    usleep(1000);
     if (False == RtspSetupMsg(sess)){
         fprintf(stderr, "Error: RtspSetupMsg.\n");
         return False;
     }
 
-
+    usleep(1000);
     if (False == RtspPlayMsg(sess)){
         fprintf(stderr, "Error: RtspPlayMsg.\n");
         return False;
