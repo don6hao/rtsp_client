@@ -7,6 +7,7 @@
 #include "rtspClient.h"
 #include "net.h"
 #include "tpool.h"
+#include "utils.h"
 
 uint32_t ParseUrl(char *url, RtspClientSession *cses)
 {
@@ -60,12 +61,23 @@ void* RtspHandleTcpConnect(void* args)
 
     int32_t sockfd = sess->sockfd;
     int32_t num = 0x00, size = 4096;
+    int32_t length;
+    int32_t rtpch = sess->transport.tcp.start;
+    int32_t rtcpch = sess->transport.tcp.end;
     char    buf[size];
 
     do{
         num = RtspTcpRcvMsg(sockfd, buf, size);
         if (num <= 0x00)
             break;
+
+        if (0x24 == buf[0]){
+            if (rtcpch == buf[1]){
+                length = GET_16(&buf[2]);
+            }else if (rtpch == buf[1]){
+                length = GET_16(&buf[2]);
+            }
+        }
     }while(1);
 
     printf("RtspHandleTcpConnect Quit!\n");
