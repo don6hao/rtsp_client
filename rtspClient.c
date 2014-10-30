@@ -76,6 +76,7 @@ void* RtspHandleTcpConnect(void* args)
 #endif
 
     do{
+        pos = buf;
         num = RtspTcpRcvMsg(sockfd, (char *)&rot, sizeof(RtpOverTcp));
         if (num <= 0x00){
             fprintf(stderr, "recv error or connection closed!\n");
@@ -93,16 +94,17 @@ void* RtspHandleTcpConnect(void* args)
                     break;
                 }
                 size -= num;
+                pos  += num;
             }while(size > 0x00);
             if (rtcpch == rot.ch){
                 /* RTCP Protocl */
             }else if (rtpch == rot.ch){
                 /* RTP Protocl */
-                length = GetRtpHeaderLength(pos, length);
-                /*if (False == CheckRtpSequence(pos, (void *)sess))*/
-                    /*continue;*/
+                length = GetRtpHeaderLength(buf, length);
+                if (False == CheckRtpSequence(buf, (void *)sess))
+                    continue;
 #ifdef SAVE_FILE_DEBUG
-                fwrite(pos+length, num-length, 1, fp);
+                fwrite(buf+length, num-length, 1, fp);
                 fflush(fp);
 #endif
             }

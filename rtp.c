@@ -9,34 +9,16 @@
 int32_t CheckRtpSequence(char *buf, void* args)
 {
     RtspSession *sess = (RtspSession *)(args);
-    uint32_t offset = 0;
-    RtpHeader rtphdr;
-
-    rtphdr.version = buf[offset] >> 6;
-    rtphdr.padding = CHECK_BIT(buf[offset], 5);
-    rtphdr.extension = CHECK_BIT(buf[offset], 4);
-    rtphdr.cc = buf[offset] & 0xFF;
-
-    /* next byte */
-    offset++;
-
-    rtphdr.marker = CHECK_BIT(buf[offset], 8);
-    rtphdr.pt     = buf[offset] & 0x7f;
-
-    /* next byte */
-    offset++;
-
     /* Sequence number */
-    rtphdr.seq = ((unsigned char)buf[offset])*256 + (unsigned char)buf[offset + 1];
+    uint32_t seq = ((unsigned char)buf[2])*256 + (unsigned char)buf[3];
 
-    printf("sequence : %d, %d\n", rtphdr.seq, sess->rtpseq);
-#if 1
-    if ((SHORT_INT_MAX == sess->rtpseq) && (0x00 == rtphdr.seq)){
-        sess->rtpseq = rtphdr.seq;
-    }else if (0x01 < (rtphdr.seq - sess->rtpseq)){
+#if 0
+    if ((SHORT_INT_MAX == sess->rtpseq) && (0x00 == seq)){
+        sess->rtpseq = seq;
+    }else if (0x01 < (seq - sess->rtpseq)){
         return False;
     }else{
-        sess->rtpseq = rtphdr.seq;
+        sess->rtpseq = seq;
     }
 #endif
     return True;
