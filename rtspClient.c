@@ -83,17 +83,24 @@ void* RtspHandleTcpConnect(void* args)
         }
 
         if (RTP_TCP_MAGIC == rot.magic){
-            length = GET_16(rot.len);
-            num = RtspTcpRcvMsg(sockfd, pos, length);
-            if (num <= 0x00){
-                fprintf(stderr, "recv error or connection closed!\n");
-                break;
-            }
+            rot.len[1] &= 0xFF;
+            length = GET_16(&rot.len[0]);
+            int32_t size = length;
+            do{
+                num = RtspTcpRcvMsg(sockfd, pos, size);
+                if (num <= 0x00){
+                    fprintf(stderr, "recv error or connection closed!\n");
+                    break;
+                }
+                size -= num;
+            }while(size > 0x00);
             if (rtcpch == rot.ch){
                 /* RTCP Protocl */
             }else if (rtpch == rot.ch){
                 /* RTP Protocl */
                 length = GetRtpHeaderLength(pos, length);
+                /*if (False == CheckRtpSequence(pos, (void *)sess))*/
+                    /*continue;*/
 #ifdef SAVE_FILE_DEBUG
                 fwrite(pos+length, num-length, 1, fp);
                 fflush(fp);

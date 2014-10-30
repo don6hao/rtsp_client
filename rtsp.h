@@ -1,6 +1,8 @@
 #ifndef _RTSP_H_
 #define _RTSP_H_
 
+#include "rtspType.h"
+
 #define VERSION           "0.1"
 #define PROTOCOL_PREFIX   "rtsp://"
 #define RTSP_PORT         554
@@ -74,6 +76,7 @@ typedef struct RTSPSESSION{
     uint32_t port;
     int32_t sockfd;
     int32_t cseq;
+    uint32_t rtpseq;
 
     uint32_t packetization; /* Packetization mode from SDP data */
     union{

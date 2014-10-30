@@ -6,9 +6,9 @@
 #define MAX_BUF_SIZE  (65536 * 10)
 
 typedef struct RTP_OVER_TCP{
-    char magic;
-    char ch;
-    char len[2];
+    unsigned char magic;
+    unsigned char ch;
+    unsigned char len[2];
 }RtpOverTcp;
 
 typedef struct rtp_header {
@@ -37,8 +37,8 @@ enum {
     NAL_TYPE_FU_A		= 28,
 };
 
-uint32_t rtp_parse(unsigned char *raw, uint32_t size);
 uint32_t GetRtpHeaderLength(char *buf, uint32_t size);
+int32_t CheckRtpSequence(char *buf, void* args);
 
 
 #endif
