@@ -105,7 +105,7 @@ int32_t RtspOptionsMsg(RtspSession *sess)
     return ret;
 }
 
-static void GetSdpVideoAcontrol(char *buf, uint32_t size, char *url)
+static void GetSdpVideoAcontrol(char *buf, uint32_t size, RtspSession *sess)
 {
     char *ptr = (char *)memmem((const void*)buf, size,
             (const void*)SDP_M_VIDEO, strlen(SDP_M_VIDEO)-1);
@@ -132,20 +132,10 @@ static void GetSdpVideoAcontrol(char *buf, uint32_t size, char *url)
         /* a=control:* */
         printf("a=control:*\n");
         return;
-    }else if (0x00 == memcmp((const void*)ptr, \
-                (const void*)PROTOCOL_PREFIX, \
-                strlen(PROTOCOL_PREFIX)-1)){
-            /* a=control:rtsp://ip:port/track1 */
-            memcpy((void *)url, (const void*)(ptr), (endptr-ptr));
-            url[endptr-ptr] = '\0';
     }else{
-        /*a=control:track1*/
-        int32_t len = strlen(url);
-        url[len] = '/';
-        len++;
-        char *p = url+len;
-        memcpy((void *)p, (const void*)ptr, (endptr-ptr));
-        url[len+endptr-ptr] = '\0';
+        /* a=control:rtsp://ip:port/track1  or a=control : TrackID=1*/
+        memcpy((void *)sess->vmedia.control, (const void*)(ptr), (endptr-ptr));
+        sess->vmedia.control[endptr-ptr] = '\0';
     }
 
     return;
@@ -177,9 +167,9 @@ static void GetSdpVideoTransport(char *buf, uint32_t size, RtspSession *sess)
 static int32_t ParseSdpProto(char *buf, uint32_t size, RtspSession *sess)
 {
     GetSdpVideoTransport(buf, size, sess);
-    GetSdpVideoAcontrol(buf, size, sess->url);
+    GetSdpVideoAcontrol(buf, size, sess);
 #ifdef RTSP_DEBUG
-    printf("video url: %s\n", sess->url);
+    printf("video control: %s\n", sess->vmedia.control);
 #endif
     return True;
 }
@@ -334,9 +324,10 @@ static int32_t ParseSessionID(char *buf, uint32_t size, RtspSession *sess)
         printf("SETUP: Session header not found\n");
         return False;
     }
-    char *sep = strstr((const char *)p, "\r\n");
-    if (NULL == sep)
-        return False;
+    char *sep = strchr((const char *)p, ';');
+    char *sep2 = strstr((const char *)p, "\r\n");
+    if ((NULL == sep) || (sep-sep2 > 0x00))
+        sep = sep2;
     memset(sess->sessid, '\0', sizeof(sess->sessid));
     strncpy(sess->sessid, p+sizeof(SETUP_SESSION)-1, sep-p-sizeof(SETUP_SESSION)+1);
 #ifdef RTSP_DEBUG
@@ -353,17 +344,27 @@ int32_t RtspSetupMsg(RtspSession *sess)
     char buf[size];
     int32_t sock = sess->sockfd;
 
-#ifndef RTSP_DEBUG
+#ifdef RTSP_DEBUG
     printf("SETUP: command\n");
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    if (RTP_AVP_TCP == sess->trans){
-        num = snprintf(buf, size, CMD_TCP_SETUP, sess->url, sess->cseq);
-    }else if (RTP_AVP_UDP == sess->trans){
-        num = snprintf(buf, size, CMD_UDP_SETUP, sess->url, sess->cseq, 10000, 10001);
+    char url[256];
+    memset(url, '\0', sizeof(url));
+    if (NULL == strstr(sess->vmedia.control, PROTOCOL_PREFIX)){
+        strncpy(url, sess->url, strlen(sess->url));
     }
-#ifndef RTSP_DEBUG
+    strncat(url, sess->vmedia.control, strlen(sess->vmedia.control));
+#ifdef RTSP_DEBUG
+    printf("SETUP URL: %s\n", url);
+#endif
+    if (RTP_AVP_TCP == sess->trans){
+        num = snprintf(buf, size, CMD_TCP_SETUP, url, sess->cseq);
+    }else if (RTP_AVP_UDP == sess->trans){
+        num = snprintf(buf, size, CMD_TCP_SETUP, url, sess->cseq);
+        /*num = snprintf(buf, size, CMD_UDP_SETUP, sess->url, sess->cseq, 10000, 10001);*/
+    }
+#ifdef RTSP_DEBUG
     printf("setup cmd : %s\n", buf);
 #endif
     if (num < 0x00){
@@ -395,7 +396,10 @@ int32_t RtspSetupMsg(RtspSession *sess)
         return False;
     }
 
-    ParseUdpPort(buf, num, sess);
+    if (RTP_AVP_UDP == sess->trans){
+        ParseUdpPort(buf, num, sess);
+    }else{
+    }
     ParseSessionID(buf, num, sess);
     sess->packetization = 1;
     RtspIncreaseCseq(sess);

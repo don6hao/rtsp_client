@@ -142,7 +142,7 @@ int32_t RtspTcpSendMsg(int32_t fd, char *buf, uint32_t size)
 
 int32_t RtspTcpRcvMsg(int32_t fd, char *buf, uint32_t size)
 {
-    int32_t num = recv(fd, buf, size-1, 0);
+    int32_t num = recv(fd, buf, size, 0);
     return num;
 }
 

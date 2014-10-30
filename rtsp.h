@@ -61,6 +61,14 @@ typedef struct RTP_UDP{
     char reserve[2];
 }RtpUdp;
 
+typedef struct VIDEO_MEDIA{
+    char control[128];
+}VideoMedia;
+
+typedef struct AUDIO_MEDIA{
+    char control[128];
+}AudioMedia;
+
 typedef struct RTSPSESSION{
     uint32_t port;
     int32_t sockfd;
@@ -71,6 +79,8 @@ typedef struct RTSPSESSION{
         RtpUdp    udp;
         RtpTcp    tcp;
     }transport;
+    AudioMedia    amedia;
+    VideoMedia    vmedia;
     char  sessid[16];
     char  url[128];
     char  ip[16];

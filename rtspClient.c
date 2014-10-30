@@ -8,6 +8,7 @@
 #include "net.h"
 #include "tpool.h"
 #include "utils.h"
+#include "rtp.h"
 
 uint32_t ParseUrl(char *url, RtspClientSession *cses)
 {
@@ -61,25 +62,35 @@ void* RtspHandleTcpConnect(void* args)
 
     int32_t sockfd = sess->sockfd;
     int32_t num = 0x00, size = 4096;
-    int32_t length;
-    int32_t rtpch = sess->transport.tcp.start;
-    int32_t rtcpch = sess->transport.tcp.end;
+    int32_t rtpch = 0x00;//sess->transport.tcp.start;
+    int32_t rtcpch = 0x01;//sess->transport.tcp.end;
     char    buf[size];
+    FILE    *fp = fopen("1.264", "a+");
 
     do{
-        num = RtspTcpRcvMsg(sockfd, buf, size);
+        RtpOverTcp rot;
+        RtpHeader  *rtp = NULL;
+        num = RtspTcpRcvMsg(sockfd, (char *)&rot, sizeof(RtpOverTcp));
         if (num <= 0x00)
             break;
 
-        if (0x24 == buf[0]){
-            if (rtcpch == buf[1]){
-                length = GET_16(&buf[2]);
-            }else if (rtpch == buf[1]){
-                length = GET_16(&buf[2]);
+        int32_t length;
+        char *pos = buf;
+        if (0x24 == rot.magic){
+            length = GET_16(rot.len);
+            num = RtspTcpRcvMsg(sockfd, pos, length);
+            if (num <= 0x00)
+                break;
+            rtp = (RtpHeader *)pos;
+            if (rtcpch == rot.ch){
+            }else if (rtpch == rot.ch){
+                fwrite(pos+sizeof(RtpHeader), num, 1, fp);
+                fflush(fp);
             }
         }
     }while(1);
 
+    fclose(fp);
     printf("RtspHandleTcpConnect Quit!\n");
     return NULL;
 }
@@ -124,6 +135,7 @@ void* RtspEventLoop(void* args)
                 (RTSP_QUIT == sess->status))
             break;
         if (RTSP_PLAY == sess->status){
+#if 0
             if (0x00 == transid){
                 if (RTP_AVP_UDP == sess->trans){
                     transid = RtspCreateThread(RtspHandleUdpConnect, (void *)sess);
@@ -135,6 +147,9 @@ void* RtspEventLoop(void* args)
                     RtspHandleTcpConnect((void *)sess);
                 }
             }
+#else
+            RtspHandleTcpConnect((void *)sess);
+#endif
         }
     }while(1);
 
