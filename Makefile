@@ -5,7 +5,7 @@ INC=
 LIB= -lpthread
 
 CC=gcc
-CC_FLAG=-Wall -g -DRTSP_DEBUG
+CC_FLAG=-Wall -g -DRTSP_DEBUG -DSAVE_FILE_DEBUG
 
 PRG=rtspClient
 OBJ=./*.o

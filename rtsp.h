@@ -14,6 +14,7 @@
 #define CMD_TEARDOWN      "TEARDOWN %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\n\r\n"
 #define UDP_TRANSPORT     "RTP/AVP"
 #define TCP_TRANSPORT     "RTP/AVP/TCP"
+#define TCP_INTERLEAVED   "interleaved="
 
 #define SETUP_SESSION      "Session: "
 #define SETUP_CPORT    "client_port="

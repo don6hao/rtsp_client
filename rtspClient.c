@@ -61,36 +61,50 @@ void* RtspHandleTcpConnect(void* args)
     RtspSession *sess = &csess->sess;
 
     int32_t sockfd = sess->sockfd;
-    int32_t num = 0x00, size = 4096;
-    int32_t rtpch = 0x00;//sess->transport.tcp.start;
-    int32_t rtcpch = 0x01;//sess->transport.tcp.end;
-    char    buf[size];
-    FILE    *fp = fopen("1.264", "a+");
+    int32_t num = 0x00, size = 1920*1080;
+    int32_t rtpch = sess->transport.tcp.start;
+    int32_t rtcpch = sess->transport.tcp.end;
+    char    buf[size], *pos = buf;
+    uint32_t length;
+    RtpOverTcp rot;
+#ifdef SAVE_FILE_DEBUG
+    FILE    *fp = fopen("1.264", "w+");
+    if (NULL == fp){
+        fprintf(stderr, "fopen error!\n");
+        return NULL;
+    }
+#endif
 
     do{
-        RtpOverTcp rot;
-        RtpHeader  *rtp = NULL;
         num = RtspTcpRcvMsg(sockfd, (char *)&rot, sizeof(RtpOverTcp));
-        if (num <= 0x00)
+        if (num <= 0x00){
+            fprintf(stderr, "recv error or connection closed!\n");
             break;
+        }
 
-        int32_t length;
-        char *pos = buf;
-        if (0x24 == rot.magic){
+        if (RTP_TCP_MAGIC == rot.magic){
             length = GET_16(rot.len);
             num = RtspTcpRcvMsg(sockfd, pos, length);
-            if (num <= 0x00)
+            if (num <= 0x00){
+                fprintf(stderr, "recv error or connection closed!\n");
                 break;
-            rtp = (RtpHeader *)pos;
+            }
             if (rtcpch == rot.ch){
+                /* RTCP Protocl */
             }else if (rtpch == rot.ch){
-                fwrite(pos+sizeof(RtpHeader), num, 1, fp);
+                /* RTP Protocl */
+                length = GetRtpHeaderLength(pos, length);
+#ifdef SAVE_FILE_DEBUG
+                fwrite(pos+length, num-length, 1, fp);
                 fflush(fp);
+#endif
             }
         }
     }while(1);
 
+#ifdef SAVE_FILE_DEBUG
     fclose(fp);
+#endif
     printf("RtspHandleTcpConnect Quit!\n");
     return NULL;
 }
@@ -128,7 +142,9 @@ void* RtspEventLoop(void* args)
         return NULL;
     }
 
+#if 0
     pthread_t transid = 0x00;
+#endif
     sess->sockfd = fd;
     do{
         if ((False == RtspStatusMachine(sess)) || \
@@ -166,6 +182,8 @@ RtspClientSession* InitRtspClientSession()
     RtspSession *sess = &cses->sess;
     sess->trans  = RTP_AVP_UDP;
     sess->status = RTSP_START;
+    sess->transport.tcp.start = 0x00;
+    sess->transport.tcp.end = 0x01;
     return cses;
 }
 

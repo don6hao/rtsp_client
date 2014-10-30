@@ -65,7 +65,7 @@ int32_t RtspOptionsMsg(RtspSession *sess)
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
-    printf("OPTIONS: command\n");
+    printf("++++++++++++++++++  OPTIONS: command  +++++++++++++++++++++\n");
 #endif
 
     memset(buf, '\0', sizeof(buf));
@@ -80,7 +80,7 @@ int32_t RtspOptionsMsg(RtspSession *sess)
         return False;
     }
 #ifdef RTSP_DEBUG
-    printf("OPTIONS: request sent\n");
+    printf("OPTIONS Request: %s\n", buf);
 #endif
 
     memset(buf, '\0', sizeof(buf));
@@ -90,6 +90,9 @@ int32_t RtspOptionsMsg(RtspSession *sess)
         return False;
     }
 
+#ifdef RTSP_DEBUG
+    printf("\nOptions Reply: %s\n", buf);
+#endif
     status = RtspResponseStatus(buf, &err);
     if (status == 200){
         printf("OPTIONS: response status %i (%i bytes)\n", status, num);
@@ -185,7 +188,7 @@ int32_t RtspDescribeMsg(RtspSession *sess)
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
-    printf("DESCRIBE: command\n");
+    printf("++++++++++++++++++++++  DESCRIBE: command  +++++++++++++++++++++++++++\n");
 #endif
 
     memset(buf, '\0', sizeof(buf));
@@ -202,7 +205,7 @@ int32_t RtspDescribeMsg(RtspSession *sess)
     }
 
 #ifdef RTSP_DEBUG
-    printf("DESCRIBE: request sent\n");
+    printf("DESCRIBE Request: %s\n", buf);
 #endif
 
     memset(buf, '\0', sizeof(buf));
@@ -212,7 +215,9 @@ int32_t RtspDescribeMsg(RtspSession *sess)
         return False;
     }
 
-
+#ifdef RTSP_DEBUG
+    printf("\nDescribe Reply: %s\n", buf);
+#endif
     status = RtspResponseStatus(buf, &err);
     if (status == 200) {
         printf("DESCRIBE: response status %i (%i bytes)\n", status, num);
@@ -230,6 +235,7 @@ int32_t RtspDescribeMsg(RtspSession *sess)
     return ret;
 }
 
+#if 0
 static int32_t ParseTransport(char *buf, uint32_t size, RtspSession *sess)
 {
     char *p = strstr(buf, "Transport: ");
@@ -241,6 +247,50 @@ static int32_t ParseTransport(char *buf, uint32_t size, RtspSession *sess)
     char *sep = strchr(p, ';');
     if (NULL == sep)
         return False;
+    return True;
+}
+#endif
+
+static int32_t ParseInterleaved(char *buf, uint32_t num, RtspSession *sess)
+{
+    char *p = strstr(buf, TCP_INTERLEAVED);
+    if (!p) {
+        printf("SETUP: %s not found\n", TCP_INTERLEAVED);
+        return False;
+    }
+    p = strchr((const char *)p, '=');
+    if (NULL == p){
+        printf("SETUP: = not found\n");
+        return False;
+    }
+    char *sep = strchr((const char *)p, '-');
+    if (NULL == sep){
+        printf("SETUP: - not found\n");
+        return False;
+    }
+    char tmp[8] = {0x00};
+    strncpy(tmp, p+1, sep-p-1);
+    sess->transport.tcp.start = atol(tmp);
+    memset(tmp, 0x00, sizeof(tmp));
+
+    p = strchr((const char *)sep, ';');
+    if (NULL == p){
+        p = strstr((const char *)sep, "\r\n");
+        if (NULL == p){
+            printf("SETUP: %s not found\n", "\r\n");
+            return False;
+        }
+    }
+
+    strncpy(tmp, sep+1, p-sep-1);
+    sess->transport.udp.cport_to = atol(tmp);
+    memset(tmp, 0x00, sizeof(tmp));
+
+#ifdef RTSP_DEBUG
+    printf("tcp interleaved from %d to %d\n", \
+            sess->transport.tcp.start, \
+            sess->transport.tcp.end);
+#endif
     return True;
 }
 
@@ -259,7 +309,7 @@ static int32_t ParseUdpPort(char *buf, uint32_t size, RtspSession *sess)
     }
     char *sep = strchr((const char *)p, '-');
     if (NULL == sep){
-        printf("SETUP: ; not found\n");
+        printf("SETUP: - not found\n");
         return False;
     }
     char tmp[8] = {0x00};
@@ -345,14 +395,17 @@ int32_t RtspSetupMsg(RtspSession *sess)
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
-    printf("SETUP: command\n");
+    printf("++++++++++++++++++++  SETUP: command  +++++++++++++++++++++++++\n");
 #endif
 
     memset(buf, '\0', sizeof(buf));
     char url[256];
     memset(url, '\0', sizeof(url));
     if (NULL == strstr(sess->vmedia.control, PROTOCOL_PREFIX)){
-        strncpy(url, sess->url, strlen(sess->url));
+        int32_t len = strlen(sess->url);
+        strncpy(url, sess->url, len);
+        url[len] = '/';
+        url[len+1] = '\0';
     }
     strncat(url, sess->vmedia.control, strlen(sess->vmedia.control));
 #ifdef RTSP_DEBUG
@@ -364,9 +417,6 @@ int32_t RtspSetupMsg(RtspSession *sess)
         num = snprintf(buf, size, CMD_TCP_SETUP, url, sess->cseq);
         /*num = snprintf(buf, size, CMD_UDP_SETUP, sess->url, sess->cseq, 10000, 10001);*/
     }
-#ifdef RTSP_DEBUG
-    printf("setup cmd : %s\n", buf);
-#endif
     if (num < 0x00){
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
@@ -378,7 +428,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
     }
 
 #ifdef RTSP_DEBUG
-    printf("SETUP: request sent\n");
+    printf("SETUP Request: %s\n", buf);
 #endif
     memset(buf, '\0', sizeof(buf));
     num = RtspTcpRcvMsg(sock, buf, size-1);
@@ -387,6 +437,9 @@ int32_t RtspSetupMsg(RtspSession *sess)
         return False;
     }
 
+#ifdef RTSP_DEBUG
+    printf("SETUP Reply: %s\n", buf);
+#endif
     status = RtspResponseStatus(buf, &err);
     if (status == 200) {
         printf("SETUP: response status %i (%i bytes)\n", status, num);
@@ -399,6 +452,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
     if (RTP_AVP_UDP == sess->trans){
         ParseUdpPort(buf, num, sess);
     }else{
+        ParseInterleaved(buf, num, sess);
     }
     ParseSessionID(buf, num, sess);
     sess->packetization = 1;
@@ -413,7 +467,7 @@ int32_t RtspPlayMsg(RtspSession *sess)
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
-    printf("PLAY: command\n");
+    printf("+++++++++++++++++++  PLAY: command  ++++++++++++++++++++++++++\n");
 #endif
     memset(buf, '\0', sizeof(buf));
     printf("url : %s\n", sess->url);
@@ -429,7 +483,7 @@ int32_t RtspPlayMsg(RtspSession *sess)
     }
 
 #ifdef RTSP_DEBUG
-    printf("PLAY: request sent\n");
+    printf("PLAY Request: %s\n", buf);
 #endif
 
     memset(buf, '\0', sizeof(buf));
@@ -439,6 +493,9 @@ int32_t RtspPlayMsg(RtspSession *sess)
         return False;
     }
 
+#ifdef RTSP_DEBUG
+    printf("PLAY Reply: %s\n", buf);
+#endif
     status = RtspResponseStatus(buf, &err);
     if (status == 200) {
         printf("PLAY: response status %i (%i bytes)\n", status, num);
@@ -460,7 +517,7 @@ int32_t RtspTeardownMsg(RtspSession *sess)
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
-    printf("TEARDOWN: command\n");
+    printf("++++++++++++++++ TEARDOWN: command ++++++++++++++++++++++++++++\n");
 #endif
     memset(buf, '\0', sizeof(buf));
     num = snprintf(buf, size, CMD_TEARDOWN, sess->url, sess->cseq, sess->sessid);
@@ -468,6 +525,7 @@ int32_t RtspTeardownMsg(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
+
     num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
@@ -475,7 +533,7 @@ int32_t RtspTeardownMsg(RtspSession *sess)
     }
 
 #ifdef RTSP_DEBUG
-    printf("TEARDOWN: request sent\n");
+    printf("TEARDOWN Request: %s\n", buf);
 #endif
 
     memset(buf, '\0', sizeof(buf));
@@ -485,6 +543,9 @@ int32_t RtspTeardownMsg(RtspSession *sess)
         return False;
     }
 
+#ifdef RTSP_DEBUG
+    printf("TEARDOWN Reply: %s\n", buf);
+#endif
     status = RtspResponseStatus(buf, &err);
     if (status == 200) {
         printf("TEARDOWN: response status %i (%i bytes)\n", status, num);
