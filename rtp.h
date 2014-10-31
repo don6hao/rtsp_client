@@ -3,13 +3,30 @@
 
 #include <time.h>
 #include "rtspType.h"
-#define MAX_BUF_SIZE  (65536 * 10)
 
-typedef struct RTP_OVER_TCP{
-    unsigned char magic;
-    unsigned char ch;
-    unsigned char len[2];
-}RtpOverTcp;
+#define FRAME_MAX_SIZE              (1920*1080)
+#define RTP_TCP_MAGIC               (0x24)
+#define RTP_FREQ                    (90000)
+#define PACKET_BUFFER_END           ((unsigned int)0x00000000)
+#define MAX_RTP_PKT_LENGTH          (1400)
+#define H264_PAYLOAD                (96)
+
+/******************************************************************
+RTP_FIXED_HEADER
+0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|V=2|P|X|  CC   |M|     PT      |       sequence number         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                           timestamp                           |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|           synchronization source (SSRC) identifier            |
++=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+|            contributing source (CSRC) identifiers             |
+|                             ....                              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+******************************************************************/
 
 typedef struct rtp_header {
     uint32_t version:2;     /* protocol version */
@@ -21,12 +38,62 @@ typedef struct rtp_header {
     uint32_t seq:16;            /* sequence number */
     uint32_t ts;                /* timestamp */
     uint32_t ssrc;              /* synchronization source */
-    uint32_t csrc[1];           /* optional CSRC list */
 }RtpHeader;
 
-#define RTP_TCP_MAGIC   (0x24)
-#define RTP_FREQ    90000
-#define RTP_SPROP   "sprop-parameter-sets="
+/******************************************************************
+NALU_HEADER
++---------------+
+|0|1|2|3|4|5|6|7|
++-+-+-+-+-+-+-+-+
+|F|NRI|  Type   |
++---------------+
+******************************************************************/
+typedef struct {
+    //byte 0
+	unsigned char TYPE:5;
+    unsigned char NRI:2;
+	unsigned char F:1;
+} NALU_HEADER; /* 1 byte */
+
+
+/******************************************************************
+FU_INDICATOR
++---------------+
+|0|1|2|3|4|5|6|7|
++-+-+-+-+-+-+-+-+
+|F|NRI|  Type   |
++---------------+
+******************************************************************/
+typedef struct {
+    //byte 0
+    unsigned char TYPE:5;
+	unsigned char NRI:2;
+	unsigned char F:1;
+} FU_INDICATOR; /*1 byte */
+
+
+/******************************************************************
+FU_HEADER
++---------------+
+|0|1|2|3|4|5|6|7|
++-+-+-+-+-+-+-+-+
+|S|E|R|  Type   |
++---------------+
+******************************************************************/
+typedef struct {
+    //byte 0
+    unsigned char TYPE:5;
+	unsigned char R:1;
+	unsigned char E:1;
+	unsigned char S:1;
+} FU_HEADER; /* 1 byte */
+
+
+typedef struct RTP_OVER_TCP{
+    unsigned char magic;
+    unsigned char ch;
+    unsigned char len[2];
+}RtpOverTcp;
 
 /* Enumeration of H.264 NAL unit types */
 enum {
@@ -39,6 +106,9 @@ enum {
 
 uint32_t GetRtpHeaderLength(char *buf, uint32_t size);
 int32_t CheckRtpSequence(char *buf, void* args);
+int32_t CheckRtpHeaderMarker(char *buf, uint32_t size);
+unsigned int UnpackRtpNAL(char *buf, uint32_t size, char *framebuf, uint32_t framelen);
+
 
 
 #endif

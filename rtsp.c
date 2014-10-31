@@ -11,6 +11,7 @@
 
 
 static int32_t ParseUdpPort(char *buf, uint32_t size, RtspSession *sess);
+static int32_t ParseInterleaved(char *buf, uint32_t num, RtspSession *sess);
 inline static void RtspIncreaseCseq(RtspSession *sess);
 inline static void RtspIncreaseCseq(RtspSession *sess)
 {
@@ -177,6 +178,29 @@ static int32_t ParseSdpProto(char *buf, uint32_t size, RtspSession *sess)
     return True;
 }
 
+static uint32_t GetSDPLength(char *buf, uint32_t size)
+{
+    char *p = strstr(buf, "Content-Length: ");
+    if (!p) {
+        printf("SETUP: Error, Transport header not found\n");
+        return 0x00;
+    }
+
+    char *sep = strchr(p, ' ');
+    if (NULL == sep)
+        return 0x00;
+
+    p = strstr(sep, "\r\n");
+    if (!p) {
+        printf("Describe : Content-Length: not found\n");
+        return 0x00;
+    }
+
+    char tmp[8] = {0x00};
+    strncpy(tmp, sep+1, p-sep-1);
+    return  atol(tmp);
+}
+
 int32_t RtspDescribeMsg(RtspSession *sess)
 {
     int32_t num;
@@ -229,6 +253,12 @@ int32_t RtspDescribeMsg(RtspSession *sess)
     if (NULL != err)
         free(err);
 
+    size = GetSDPLength(buf, size);
+    num = RtspTcpRcvMsg(sock, buf, size);
+    if (num <= 0) {
+        printf("Error: Server did not respond properly, closing...");
+        return False;
+    }
     ParseSdpProto(buf, num, sess);
     RtspIncreaseCseq(sess);
 
@@ -347,11 +377,13 @@ static int32_t ParseUdpPort(char *buf, uint32_t size, RtspSession *sess)
     sess->transport.udp.sport_from = atol(tmp);
     memset(tmp, 0x00, sizeof(tmp));
 
-
-    p = strstr((const char *)sep, "\r\n");
+    p = strchr((const char *)sep, ';');
     if (NULL == p){
-        printf("SETUP: = not found\n");
-        return False;
+        p = strstr((const char *)sep, "\r\n");
+        if (NULL == p){
+            printf("SETUP: %s not found\n", "\r\n");
+            return False;
+        }
     }
     strncpy(tmp, sep+1, p-sep-1);
     sess->transport.udp.sport_to = atol(tmp);
@@ -374,12 +406,13 @@ static int32_t ParseSessionID(char *buf, uint32_t size, RtspSession *sess)
         printf("SETUP: Session header not found\n");
         return False;
     }
+    p = strchr((const char *)p, ' ');
     char *sep = strchr((const char *)p, ';');
     char *sep2 = strstr((const char *)p, "\r\n");
     if ((NULL == sep) || (sep-sep2 > 0x00))
         sep = sep2;
     memset(sess->sessid, '\0', sizeof(sess->sessid));
-    strncpy(sess->sessid, p+sizeof(SETUP_SESSION)-1, sep-p-sizeof(SETUP_SESSION)+1);
+    memcpy((void *)sess->sessid, (const void *)p+1, sep-p-1);
 #ifdef RTSP_DEBUG
     printf("sessid : %s\n", sess->sessid);
 #endif
@@ -414,8 +447,8 @@ int32_t RtspSetupMsg(RtspSession *sess)
     if (RTP_AVP_TCP == sess->trans){
         num = snprintf(buf, size, CMD_TCP_SETUP, url, sess->cseq);
     }else if (RTP_AVP_UDP == sess->trans){
-        num = snprintf(buf, size, CMD_TCP_SETUP, url, sess->cseq);
-        /*num = snprintf(buf, size, CMD_UDP_SETUP, sess->url, sess->cseq, 10000, 10001);*/
+        /*num = snprintf(buf, size, CMD_TCP_SETUP, url, sess->cseq);*/
+        num = snprintf(buf, size, CMD_UDP_SETUP, url, sess->cseq, 10000, 10001);
     }
     if (num < 0x00){
         fprintf(stderr, "%s : snprintf error!\n", __func__);
@@ -590,6 +623,9 @@ int32_t RtspStatusMachine(RtspSession *sess)
                     return False;
                 }
                 sess->status = RTSP_PLAY;
+                break;
+            case RTSP_PLAY:
+                sleep(1);
                 break;
             case RTSP_TEARDOWN:
                 if (False == RtspTeardownMsg(sess)){

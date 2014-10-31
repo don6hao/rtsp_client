@@ -161,8 +161,6 @@ int32_t RtspRecvUdpRtpData(int32_t fd, char *buf, uint32_t size)
     socklen_t addr_len = sizeof(struct sockaddr_in);
     memset(buf,0x00, size);
     num = recvfrom(fd, buf, size, 0, (struct sockaddr *)&addr, &addr_len);
-    /*显示client端的网络地址*/
-    printf("receive from %s\n" , inet_ntoa( addr.sin_addr));
 
     return num;
 }

@@ -61,11 +61,11 @@ void* RtspHandleTcpConnect(void* args)
     RtspSession *sess = &csess->sess;
 
     int32_t sockfd = sess->sockfd;
-    int32_t num = 0x00, size = 1920*1080;
+    int32_t num = 0x00, size = 1500;
     int32_t rtpch = sess->transport.tcp.start;
     int32_t rtcpch = sess->transport.tcp.end;
-    char    buf[size], *pos = buf;
-    uint32_t length;
+    char    buf[size], *pos = buf, framebuf[1920*1080];
+    uint32_t length, framelen = 0x00;
     RtpOverTcp rot;
 #ifdef SAVE_FILE_DEBUG
     FILE    *fp = fopen("1.264", "w+");
@@ -75,6 +75,7 @@ void* RtspHandleTcpConnect(void* args)
     }
 #endif
 
+    memset(framebuf, 0x00, sizeof(framebuf));
     do{
         pos = buf;
         num = RtspTcpRcvMsg(sockfd, (char *)&rot, sizeof(RtpOverTcp));
@@ -100,13 +101,19 @@ void* RtspHandleTcpConnect(void* args)
                 /* RTCP Protocl */
             }else if (rtpch == rot.ch){
                 /* RTP Protocl */
-                length = GetRtpHeaderLength(buf, length);
-                if (False == CheckRtpSequence(buf, (void *)sess))
-                    continue;
+                length = sizeof(RtpHeader);
+                num = UnpackRtpNAL(buf+length, num-length, framebuf+framelen, framelen);
+                framelen += num;
+                if (True == CheckRtpHeaderMarker(buf, length))
+                {
 #ifdef SAVE_FILE_DEBUG
-                fwrite(buf+length, num-length, 1, fp);
-                fflush(fp);
+                    printf("frame length :%d\n", framelen);
+                    fwrite(framebuf, framelen, 1, fp);
+                    fflush(fp);
 #endif
+                    exit(0);
+                    framelen = 0x00;
+                }
             }
         }
     }while(1);
@@ -126,17 +133,41 @@ void* RtspHandleUdpConnect(void* args)
     int32_t rtpfd = RtspCreateUdpServer(sess->ip, sess->transport.udp.cport_from);
     /*int32_t rtcpfd = RtspUdpConnect(sess->ip, sess->transport.udp.sport_to);*/
     int32_t num = 0x00, size = 4096;
-    char    buf[size];
+    char    buf[size], framebuf[1920*1080];
+    uint32_t length, framelen = 0x00;
 #ifdef RTSP_DEBUG
     printf("rtp fd : %d\n", rtpfd);
     printf("ip, port : %s, %d\n", sess->ip, sess->transport.udp.cport_from);
 #endif
+#ifdef SAVE_FILE_DEBUG
+    FILE    *fp = fopen("1.264", "w+");
+    if (NULL == fp){
+        fprintf(stderr, "fopen error!\n");
+        return NULL;
+    }
+#endif
     do{
-        num = RtspRecvUdpRtpData(rtpfd, buf, size-1);
-        memset(buf, 0x00, size);
-        printf("recv data length : %d\n", num);
-    }while(num > 0);
+        num = RtspRecvUdpRtpData(rtpfd, buf, size);
+        if (num < 0x00){
+            fprintf(stderr, "recv error or connection closed!\n");
+            break;
+        }
+        length = sizeof(RtpHeader);
+        num = UnpackRtpNAL(buf+length, num-length, framebuf+framelen, framelen);
+        framelen += num;
+        if (True == CheckRtpHeaderMarker(buf, length))
+        {
+#ifdef SAVE_FILE_DEBUG
+            fwrite(framebuf, framelen, 1, fp);
+            fflush(fp);
+#endif
+            framelen = 0x00;
+        }
+    }while(1);
 
+#ifdef SAVE_FILE_DEBUG
+    fclose(fp);
+#endif
     printf("RtspHandleUdpConnect Quit!\n");
     return NULL;
 }
@@ -151,16 +182,20 @@ void* RtspEventLoop(void* args)
         return NULL;
     }
 
-#if 0
+#if 1
     pthread_t transid = 0x00;
 #endif
     sess->sockfd = fd;
     do{
+#if 1
         if ((False == RtspStatusMachine(sess)) || \
                 (RTSP_QUIT == sess->status))
             break;
+#else
+        RtspStatusMachine(sess);
+#endif
         if (RTSP_PLAY == sess->status){
-#if 0
+#if 1
             if (0x00 == transid){
                 if (RTP_AVP_UDP == sess->trans){
                     transid = RtspCreateThread(RtspHandleUdpConnect, (void *)sess);
