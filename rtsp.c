@@ -403,14 +403,23 @@ static int32_t ParseSessionID(char *buf, uint32_t size, RtspSession *sess)
     /* Session ID */
     char *p = strstr(buf, SETUP_SESSION);
     if (!p) {
-        printf("SETUP: Session header not found\n");
+        printf("SETUP: %s not found\n", SETUP_SESSION);
         return False;
     }
     p = strchr((const char *)p, ' ');
+    if (!p) {
+        printf("SETUP: ' ' not found\n");
+        return False;
+    }
     char *sep = strchr((const char *)p, ';');
-    char *sep2 = strstr((const char *)p, "\r\n");
-    if ((NULL == sep) || (sep-sep2 > 0x00))
-        sep = sep2;
+    if (NULL == sep){
+        sep = strstr((const char *)p, "\r\n");
+        if (NULL == sep){
+            printf("SETUP: %s not found\n", "\r\n");
+            return False;
+        }
+    }
+
     memset(sess->sessid, '\0', sizeof(sess->sessid));
     memcpy((void *)sess->sessid, (const void *)p+1, sep-p-1);
 #ifdef RTSP_DEBUG

@@ -187,15 +187,11 @@ void* RtspEventLoop(void* args)
 #endif
     sess->sockfd = fd;
     do{
-#if 1
         if ((False == RtspStatusMachine(sess)) || \
                 (RTSP_QUIT == sess->status))
             break;
-#else
-        RtspStatusMachine(sess);
-#endif
+
         if (RTSP_PLAY == sess->status){
-#if 1
             if (0x00 == transid){
                 if (RTP_AVP_UDP == sess->trans){
                     transid = RtspCreateThread(RtspHandleUdpConnect, (void *)sess);
@@ -207,9 +203,6 @@ void* RtspEventLoop(void* args)
                     RtspHandleTcpConnect((void *)sess);
                 }
             }
-#else
-            RtspHandleTcpConnect((void *)sess);
-#endif
         }
     }while(1);
 
