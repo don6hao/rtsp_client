@@ -59,5 +59,6 @@ uint32_t ParseUrl(char *url, RtspClientSession *cses);
 void* RtspEventLoop(void* args);
 RtspClientSession* InitRtspClientSession();
 void DeleteRtspClientSession(RtspClientSession *csess);
+int32_t ParseRtspUrl(char *url, RtspSession *sess);
 
 #endif

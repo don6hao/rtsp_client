@@ -87,6 +87,8 @@ typedef struct RTSPSESSION{
     VideoMedia    vmedia;
     char  sessid[32];
     char  url[128];
+    char  username[128];
+    char  password[128];
     char  ip[16];
     char  trans;      /* RTP/AVP/UDP or RTP/AVP/TCP */
     char  status;

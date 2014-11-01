@@ -235,3 +235,81 @@ void DeleteRtspClientSession(RtspClientSession *cses)
     sess = NULL;
     return;
 }
+
+
+int32_t ParseRtspUrl(char *url, RtspSession *sess)
+{
+	do {
+        // Parse the URL as "rtsp://[<username>[:<password>]@]<server-address-or-name>[:<port>][/<stream-name>]"
+        uint32_t offset = strlen(PROTOCOL_PREFIX);
+        uint32_t i;
+        char *from = url+offset;
+        char *colonPasswordStart = NULL;
+        char *p = NULL;
+
+        for (p = from; *p != '\0' && *p != '/'; ++p)
+        {
+            if (*p == ':' && colonPasswordStart == NULL){
+                colonPasswordStart = p;
+            }else if (*p == '@'){
+                if (colonPasswordStart == NULL) colonPasswordStart = p;
+                char *usernameStart = from;
+                uint32_t usernameLen = colonPasswordStart - usernameStart;
+
+                for (i = 0; i < usernameLen; ++i)
+                    sess->username[i] = usernameStart[i];
+                sess->username[usernameLen] = '\0';
+
+                char *passwordStart = colonPasswordStart;
+                if (passwordStart < p) ++passwordStart; // skip over the ':'
+
+                uint32_t passwordLen = p - passwordStart;
+                uint32_t j = 0x00;
+                for (; j < passwordLen; ++j)
+                    sess->password[j] = passwordStart[j];
+                sess->password[passwordLen] = '\0';
+                from = p + 1; // skip over the '@'
+                break;
+            }
+        }
+        printf("sess username : %s\n", sess->username);
+        printf("sess pssword : %s\n", sess->password);
+
+        // Next, parse <server-address-or-name>
+        char *to = sess->ip;
+        for (i = 0; i < sizeof(sess->ip)+1; ++i)
+        {
+            if (*from == '\0' || *from == ':' || *from == '/')
+            {
+                *to = '\0';
+                break;
+            }
+            *to++ = *from++;
+        }
+        if (i == sizeof(sess->ip)+1) {
+            fprintf(stderr, "URL is too long");
+            break;
+        }
+
+        printf("sess ip : %s\n", sess->ip);
+        char nextChar = *from++;
+        char tmp[8];
+        to = tmp;
+        if (nextChar == ':') {
+            for (i = 0; i < sizeof(tmp); ++i)
+            {
+                if (*from == '/')
+                {
+                    *to = '\0';
+                    break;
+                }
+                *to++ = *from++;
+            }
+            sess->port = atol((const char *)tmp);
+        }
+        printf("sess port : %d\n", sess->port);
+    }while(0);
+
+    return True;
+}
+
