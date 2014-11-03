@@ -2,6 +2,8 @@
 #define _RTSP_H_
 
 #include "rtspType.h"
+#include "rtp.h"
+#include "rtcp.h"
 
 #define VERSION           "0.1"
 #define PROTOCOL_PREFIX   "rtsp://"
@@ -54,7 +56,6 @@ typedef struct RTP_TCP{
 }RtpTcp;
 
 typedef struct RTP_UDP{
-    uint32_t ssrc;
     uint32_t cport_from;    /* client_port from */
     uint32_t cport_to;      /* client port to   */
     uint32_t sport_from;    /* server port from */
@@ -76,13 +77,13 @@ typedef struct RTSPSESSION{
     uint32_t port;
     int32_t sockfd;
     int32_t cseq;
-    uint32_t rtpseq;
 
     uint32_t packetization; /* Packetization mode from SDP data */
     union{
         RtpUdp    udp;
         RtpTcp    tcp;
     }transport;
+    RtpSession    rtpsess;
     AudioMedia    amedia;
     VideoMedia    vmedia;
     char  sessid[32];

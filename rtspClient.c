@@ -2,6 +2,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
+/* According to POSIX.1-2001 */
+#include <sys/select.h>
+
+/* According to earlier standards */
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include "rtspType.h"
 #include "rtspClient.h"
@@ -9,6 +17,7 @@
 #include "tpool.h"
 #include "utils.h"
 #include "rtp.h"
+#include "rtcp.h"
 
 uint32_t ParseUrl(char *url, RtspClientSession *cses)
 {
@@ -131,12 +140,13 @@ void* RtspHandleUdpConnect(void* args)
     RtspSession *sess = &csess->sess;
 
     int32_t rtpfd = RtspCreateUdpServer(sess->ip, sess->transport.udp.cport_from);
-    /*int32_t rtcpfd = RtspUdpConnect(sess->ip, sess->transport.udp.sport_to);*/
+    int32_t rtcpfd = RtspCreateUdpServer(sess->ip, sess->transport.udp.cport_to);
     int32_t num = 0x00, size = 4096;
     char    buf[size], framebuf[1920*1080];
     uint32_t length, framelen = 0x00;
 #ifdef RTSP_DEBUG
-    printf("rtp fd : %d\n", rtpfd);
+    printf("-------  %d, %d ---------\n", sess->transport.udp.sport_from, sess->transport.udp.sport_to);
+    printf("rtp fd : %d, %d\n", rtpfd, rtcpfd);
     printf("ip, port : %s, %d\n", sess->ip, sess->transport.udp.cport_from);
 #endif
 #ifdef SAVE_FILE_DEBUG
@@ -146,28 +156,66 @@ void* RtspHandleUdpConnect(void* args)
         return NULL;
     }
 #endif
+
+    struct timeval timeout;
+    timeout.tv_sec=1;
+    timeout.tv_usec=0;
+    fd_set readfd;
+    fd_set writefd;
     do{
-        num = RtspRecvUdpRtpData(rtpfd, buf, size);
-        if (num < 0x00){
-            fprintf(stderr, "recv error or connection closed!\n");
+        FD_ZERO(&readfd);
+        FD_ZERO(&writefd);
+        FD_SET(rtpfd, &readfd);
+        FD_SET(rtcpfd, &readfd);
+        FD_SET(rtcpfd, &writefd);
+        int32_t ret = select(rtcpfd+1, &readfd, &writefd, NULL, &timeout);
+        if (-1 == ret){
+            fprintf(stderr, "select error!\n");
             break;
         }
-        length = sizeof(RtpHeader);
-        num = UnpackRtpNAL(buf+length, num-length, framebuf+framelen, framelen);
-        framelen += num;
-        if (True == CheckRtpHeaderMarker(buf, length))
-        {
+        if (FD_ISSET(rtpfd, &readfd)){
+            num = RtspRecvUdpRtpData(rtpfd, buf, size);
+            if (num < 0x00){
+                fprintf(stderr, "recv error or connection closed!\n");
+                break;
+            }
+            ParseRtp(buf, num, &sess->rtpsess);
+            length = sizeof(RtpHeader);
+            num = UnpackRtpNAL(buf+length, num-length, framebuf+framelen, framelen);
+            framelen += num;
+            if (True == CheckRtpHeaderMarker(buf, length))
+            {
 #ifdef SAVE_FILE_DEBUG
-            fwrite(framebuf, framelen, 1, fp);
-            fflush(fp);
+                fwrite(framebuf, framelen, 1, fp);
+                fflush(fp);
 #endif
-            framelen = 0x00;
+                framelen = 0x00;
+            }
+        }
+        if (FD_ISSET(rtcpfd, &readfd)){
+            num = RtspRecvUdpRtpData(rtcpfd, buf, size);
+            if (num < 0x00){
+                fprintf(stderr, "recv error or connection closed!\n");
+                break;
+            }
+            uint32_t ret = ParseRtcp(buf, num);
+            if (RTCP_BYE == ret){
+                printf("Receive RTCP BYE!\n");
+                break;
+            }else if (RTCP_SR == ret){
+                printf("Receive RTCP Sender Report!\n");
+                char tmp[512];
+                uint32_t len = RtcpReceiveReport(tmp, sizeof(tmp), &sess->rtpsess);
+                RtspSendUdpRtpData(rtcpfd, tmp, len, sess->ip, sess->transport.udp.sport_to);
+            }
         }
     }while(1);
 
 #ifdef SAVE_FILE_DEBUG
     fclose(fp);
 #endif
+    close(rtpfd);
+    close(rtcpfd);
     printf("RtspHandleUdpConnect Quit!\n");
     return NULL;
 }

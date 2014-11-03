@@ -164,3 +164,17 @@ int32_t RtspRecvUdpRtpData(int32_t fd, char *buf, uint32_t size)
 
     return num;
 }
+
+int32_t RtspSendUdpRtpData(int32_t fd, char *buf, uint32_t size, char *ip, uint32_t port)
+{
+    struct sockaddr_in remote;
+    remote.sin_family = AF_INET;
+    inet_pton(AF_INET, (const char*)ip, (void *) (&(remote.sin_addr.s_addr)));
+    remote.sin_port = htons(port);
+    connect(fd, (struct sockaddr *) &remote, sizeof(struct sockaddr));
+    int32_t num = 0x00;
+    socklen_t addr_len = sizeof(struct sockaddr_in);
+    num = sendto(fd, buf, size, 0, (struct sockaddr *)&remote, addr_len);
+
+    return num;
+}

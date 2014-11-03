@@ -57,7 +57,7 @@ int32_t main(int argc, char **argv)
     }
 
     RtspClientSession *cses = InitRtspClientSession();
-    if ((NULL == cses) || (False == ParseRtspUrl(url, cses))){
+    if ((NULL == cses) || (False == ParseUrl(url, cses))){
         fprintf(stderr, "Error : Invalid Url Address.\n");
         return 0x00;
     }

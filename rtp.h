@@ -104,10 +104,38 @@ enum {
     NAL_TYPE_FU_A		= 28,
 };
 
+typedef struct Rtp_Stats{
+    uint32_t first_seq;         /* first sequence                   */
+    uint32_t highest_seq;       /* highest sequence                 */
+    uint32_t rtp_received;      /* RTP sequence number received     */
+    uint32_t rtp_identifier;    /* source identifier                */
+    uint32_t rtp_ts;            /* RTP timestamp                    */
+    uint32_t rtp_cum_lost;       /* RTP cumulative packet lost       */
+    uint32_t rtp_expected_prior;/* RTP expected prior               */
+    uint32_t rtp_received_prior;/* RTP received prior               */
+    uint32_t transit;           /* Transit time. RFC3550 A.8        */
+    uint32_t jitter;            /* Jitter                           */
+    uint32_t lst;
+    uint32_t last_dlsr;         /* Last DLSR                        */
+    uint32_t last_rcv_SR_ts;    /* Last arrival in RTP format       */
+    uint32_t delay_snc_last_SR; /* Delay sinde last SR              */
+    struct timeval  last_rcv_SR_time;           /* Last SR arrival                  */
+    struct timeval  last_rcv_time;
+    double rtt_frac;
+}RtpStats;
+
+typedef struct Rtp_Session{
+    uint32_t seq;
+    uint32_t ssrc;
+    RtpStats stats;
+}RtpSession;
+
+
 uint32_t GetRtpHeaderLength(char *buf, uint32_t size);
 int32_t CheckRtpSequence(char *buf, void* args);
 int32_t CheckRtpHeaderMarker(char *buf, uint32_t size);
 unsigned int UnpackRtpNAL(char *buf, uint32_t size, char *framebuf, uint32_t framelen);
+void ParseRtp(char *buf, uint32_t size, RtpSession *sess);
 
 
 

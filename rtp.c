@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include "rtsp.h"
 #include "rtp.h"
@@ -10,21 +12,22 @@
 static uint32_t UnpackRtpSingle_NAL(char *buf, uint32_t size, char *framebuf);
 static uint32_t UnpackRtpSTAP_A_NAL(char *buf, uint32_t size, char *frembuf);
 static uint32_t UnpackRtpFU_A_NAL(char *buf, uint32_t size, char *framebuf);
+static void UpdateRtpStats(RtpHeader *rtph, RtpStats *rtpst);
 
-static char h264prefix[3] = {0x00, 0x00, 0x01};
+static char h264prefix[4] = {0x00, 0x00, 0x00, 0x01};
 
 int32_t CheckRtpSequence(char *buf, void* args)
 {
-    RtspSession *sess = (RtspSession *)(args);
+    RtpSession *sess = (RtpSession *)(args);
     /* Sequence number */
     uint32_t seq = ((unsigned char)buf[2])*256 + (unsigned char)buf[3];
 
-    if ((SHORT_INT_MAX == sess->rtpseq) && (0x00 == seq)){
-        sess->rtpseq = seq;
-    }else if (0x01 < (seq - sess->rtpseq)){
+    if ((SHORT_INT_MAX == sess->seq) && (0x00 == seq)){
+        sess->seq = seq;
+    }else if (0x01 < (seq - sess->seq)){
         return False;
     }else{
-        sess->rtpseq = seq;
+        sess->seq = seq;
     }
     return True;
 }
@@ -38,36 +41,55 @@ int32_t CheckRtpHeaderMarker(char *buf, uint32_t size)
     return False;
 }
 
-uint32_t GetRtpHeaderLength(char *buf, uint32_t size)
+void ParseRtp(char *buf, uint32_t size, RtpSession *sess)
 {
-    uint32_t offset = 0;
+    unsigned int offset = 0;
+    RtpHeader rtph;
+
+    rtph.version = buf[offset] >> 6;
+    rtph.padding = CHECK_BIT(buf[offset], 5);
+    rtph.extension = CHECK_BIT(buf[offset], 4);
+    rtph.cc = buf[offset] & 0xFF;
 
     /* next byte */
     offset++;
+    rtph.marker = CHECK_BIT(buf[offset], 8);
+    rtph.pt     = buf[offset] & 0x7f;
 
     /* next byte */
     offset++;
-
     /* Sequence number */
+    rtph.seq = buf[offset] * 256 + buf[offset + 1];
     offset += 2;
 
     /* time stamp */
+    rtph.ts = \
+        (buf[offset    ] << 24) |
+        (buf[offset + 1] << 16) |
+        (buf[offset + 2] <<  8) |
+        (buf[offset + 3]);
     offset += 4;
 
     /* ssrc / source identifier */
+    rtph.ssrc = \
+        (buf[offset    ] << 24) |
+        (buf[offset + 1] << 16) |
+        (buf[offset + 2] <<  8) |
+        (buf[offset + 3]);
     offset += 4;
 
-    return offset;
+    sess->seq = rtph.seq;
+    sess->ssrc = rtph.ssrc;
+    RtpStats   *rtpst = &sess->stats;
+    rtpst->rtp_identifier = rtph.ssrc;
+
+    UpdateRtpStats(&rtph, rtpst);
+    return;
 }
 
 #if 1
 unsigned int UnpackRtpNAL(char *buf, uint32_t size, char *framebuf, uint32_t framelen)
 {
-    if (((0x00 == buf[0]) && (0x00 == buf[1]) && (0x01 == buf[2])) || \
-        ((0x00 == buf[0]) && (0x00 == buf[1]) && (0x00 == buf[2]) && (0x01 == buf[3]))){
-        memcpy((void *)framebuf, (const void*)buf, size);
-        return size;
-    }
     /*
      * NAL, first byte header
      *
@@ -78,10 +100,10 @@ unsigned int UnpackRtpNAL(char *buf, uint32_t size, char *framebuf, uint32_t fra
      *   +---------------+
      */
     NALU_HEADER nalu = *(NALU_HEADER *)(&buf[0]);
-    int32_t nal_forbidden_zero = nalu.F;//CHECK_BIT(buf[0], 7);
-    int32_t nal_nri  = nalu.NRI;//(buf[0] & 0x60) >> 5;
     int32_t nal_type = nalu.TYPE;//(buf[0] & 0x1F);
 #if 0
+    int32_t nal_forbidden_zero = nalu.F;//CHECK_BIT(buf[0], 7);
+    int32_t nal_nri  = nalu.NRI;//(buf[0] & 0x60) >> 5;
     printf(" NAL Header  %02x, %02x, %02x\n", buf[0], buf[1], buf[2]);
     printf("         Forbidden zero: %i\n", nal_forbidden_zero);
     printf("         NRI           : %i\n", nal_nri);
@@ -176,8 +198,8 @@ static uint32_t UnpackRtpFU_A_NAL(char *buf, uint32_t size, char *framebuf)
         pos += len;
         memcpy((void *)pos, (const void*)(&fua), sizeof(fua));
         pos += 1;
-        memcpy((void *)pos, (const void*)(buf+3), size -3);
-        pos += size-3;
+        memcpy((void *)pos, (const void*)(buf+2), size-2);
+        pos += size-2;
     }else if (0x01 == fu_hdr.E){
         /* 分片NAL单元结束 */
         memcpy((void *)pos, (const void*)(buf+2), size-2);
@@ -189,6 +211,41 @@ static uint32_t UnpackRtpFU_A_NAL(char *buf, uint32_t size, char *framebuf)
     }
 
     return (pos-framebuf);
+}
+
+
+/* Every time a RTP packet arrive, update the stats */
+static void UpdateRtpStats(RtpHeader *rtph, RtpStats *rtpst)
+{
+    uint32_t transit;
+    int delta;
+    struct timeval now;
+
+    gettimeofday(&now, NULL);
+    rtpst->rtp_received++;
+
+    /* Highest sequence */
+    if (rtph->seq > rtpst->highest_seq) {
+        rtpst->highest_seq = rtph->seq;
+    }
+
+    /* Update RTP timestamp */
+    if (rtpst->last_rcv_time.tv_sec == 0) {
+        rtpst->first_seq = rtph->seq;
+        gettimeofday(&rtpst->last_rcv_time, NULL);
+
+    }
+
+    transit = rtpst->delay_snc_last_SR;
+    delta = transit - rtpst->transit;
+    rtpst->transit = transit;
+    if (delta < 0) {
+        delta = -delta;
+    }
+    rtpst->jitter += ((1.0/16.0)*((double)delta-rtpst->jitter));
+    rtpst->rtp_ts = rtph->ts;
+
+    return;
 }
 
 #endif
