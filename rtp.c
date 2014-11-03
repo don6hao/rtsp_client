@@ -2,6 +2,7 @@
 #include <string.h>
 #include <time.h>
 #include <sys/time.h>
+#include <arpa/inet.h>
 
 #include "rtsp.h"
 #include "rtp.h"
@@ -63,25 +64,16 @@ void ParseRtp(char *buf, uint32_t size, RtpSession *sess)
     offset += 2;
 
     /* time stamp */
-    rtph.ts = \
-        (buf[offset    ] << 24) |
-        (buf[offset + 1] << 16) |
-        (buf[offset + 2] <<  8) |
-        (buf[offset + 3]);
+    rtph.ts = GET_32((unsigned char *)&buf[offset]);
     offset += 4;
 
     /* ssrc / source identifier */
-    rtph.ssrc = \
-        (buf[offset    ] << 24) |
-        (buf[offset + 1] << 16) |
-        (buf[offset + 2] <<  8) |
-        (buf[offset + 3]);
+    rtph.ssrc = GET_32((unsigned char *)&buf[offset]);
     offset += 4;
-
     sess->seq = rtph.seq;
-    sess->ssrc = rtph.ssrc;
+    sess->ssrc = htonl(rtph.ssrc);
     RtpStats   *rtpst = &sess->stats;
-    rtpst->rtp_identifier = rtph.ssrc;
+    rtpst->rtp_identifier = htonl(rtph.ssrc);
 
     UpdateRtpStats(&rtph, rtpst);
     return;
@@ -218,7 +210,7 @@ static uint32_t UnpackRtpFU_A_NAL(char *buf, uint32_t size, char *framebuf)
 static void UpdateRtpStats(RtpHeader *rtph, RtpStats *rtpst)
 {
     uint32_t transit;
-    int delta;
+    int32_t delta;
     struct timeval now;
 
     gettimeofday(&now, NULL);

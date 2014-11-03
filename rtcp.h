@@ -20,19 +20,6 @@
 #define RTCP_SSRC   0x0c143e07
 
 
-#define RtcpHeaderSetVersion(ch,v)      (ch)->version=v
-#define RtcpHeaderSetPadbit(ch,p)       (ch)->padbit=p
-#define RtcpHeaderSetRc(ch,rc)          (ch)->rc=rc
-#define RtcpHeaderSetPacketType(ch,pt)  (ch)->type=pt
-#define RtcpHeaderSetLength(ch,l)       PUT_16(((ch)->length), l)
-
-#define RtcpHeaderGetVersion(ch) ((ch)->version)
-#define RtcpHeaderGetPadbit(ch) ((ch)->padbit)
-/*#define rtcp_common_header_get_rc(ch) ((ch)->rc)*/
-//#define rtcp_common_header_get_packet_type(ch) ((ch)->packet_type)
-/*#define rtcp_common_header_get_length(ch)	ntohs((ch)->length)*/
-
-
 typedef struct RTCP_Header{
     unsigned char  version:2;
     unsigned char  padbit:1;
@@ -87,5 +74,5 @@ typedef struct rtcp_rr{
 
 
 uint32_t RtcpReceiveReport(char *buf, uint32_t len, RtpSession *sess);
-uint32_t ParseRtcp(char *buf, uint32_t len);
+uint32_t ParseRtcp(char *buf, uint32_t len, RtpStats *stats);
 #endif

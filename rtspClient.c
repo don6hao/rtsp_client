@@ -198,7 +198,7 @@ void* RtspHandleUdpConnect(void* args)
                 fprintf(stderr, "recv error or connection closed!\n");
                 break;
             }
-            uint32_t ret = ParseRtcp(buf, num);
+            uint32_t ret = ParseRtcp(buf, num, &sess->rtpsess.stats);
             if (RTCP_BYE == ret){
                 printf("Receive RTCP BYE!\n");
                 break;

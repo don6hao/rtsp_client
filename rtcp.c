@@ -8,12 +8,15 @@
 
 
 static void ParseSenderDescribe(char *buf, uint32_t len, char *sdes);
-static void ParseSenderReport(char *buf, uint32_t len, char *srh);
-static void ParseSenderReport(char *buf, uint32_t len, char *srh)
+static void ParseSenderReport(char *buf, uint32_t len, char *srh, RtpStats *stats);
+static void ParseSenderReport(char *buf, uint32_t len, char *srh, RtpStats *stats)
 {
-    SenderReport *sr = (SenderReport *)(srh);
+    RtcpSR *rsr = (RtcpSR *)srh;
+    SenderReport *sr = (SenderReport *)&(rsr->sr);
     char *ptr = buf;
 
+    rsr->ssrc = htonl(GET_32((unsigned char *)ptr));
+    ptr += 4;
     sr->ntp_timestamp_msw = GET_32(ptr);
     ptr += 4;
     sr->ntp_timestamp_lsw = GET_32(ptr);
@@ -29,6 +32,15 @@ static void ParseSenderReport(char *buf, uint32_t len, char *srh)
         fprintf(stderr, "%s: length error!\n", __func__);
         return;
     }
+
+    struct timeval now;
+    gettimeofday(&now, NULL);
+    stats->last_rcv_SR_ts = ((sr->ntp_timestamp_msw&0xFFFF)<<16) |\
+                            (sr->ntp_timestamp_lsw >> 16);
+    stats->last_rcv_SR_time.tv_sec  = now.tv_sec;
+    stats->last_rcv_SR_time.tv_usec = now.tv_usec;
+    stats->rtp_identifier = rsr->ssrc;
+
 #ifdef RTSP_DEBUG
     if (1) {
         printf("Timestamp MSW   : 0x%x (%u)\n", sr->ntp_timestamp_msw, sr->ntp_timestamp_msw);
@@ -65,10 +77,13 @@ static void ParseSenderDescribe(char *buf, uint32_t len, char *sdes)
     return;
 }
 
-uint32_t ParseRtcp(char *buf, uint32_t len)
+uint32_t ParseRtcp(char *buf, uint32_t len, RtpStats *stats)
 {
     uint32_t i = 0;
     char *ptr = buf;
+    struct timeval now;
+    gettimeofday(&now, NULL);
+
     while (i < len) {
         RtcpHeader *rtcph = (RtcpHeader *)(ptr);
 #if 0
@@ -97,10 +112,7 @@ uint32_t ParseRtcp(char *buf, uint32_t len)
         uint32_t length = GET_16(rtcph->length)*4;
         if (rtcph->type == RTCP_SR){
             RtcpSR rsr;
-            rsr.ssrc = GET_32(ptr);
-            ptr += 4;
-            length -= 4;
-            ParseSenderReport(ptr, length, (char *)&(rsr.sr));
+            ParseSenderReport(ptr, length, (char *)&(rsr), stats);
         }else if (rtcph->type == RTCP_SDES){/* source definition */
             SDES sdes;
             ParseSenderDescribe(ptr, length, (char *)&sdes);
@@ -117,12 +129,10 @@ uint32_t ParseRtcp(char *buf, uint32_t len)
 
 static void InitRtcpHeader(RtcpHeader *ch, uint32_t type, uint32_t rc, uint32_t bytes_len)
 {
-    RtcpHeaderSetVersion(ch,2);
-    RtcpHeaderSetPadbit(ch,0);
-    RtcpHeaderSetPacketType(ch, type);
-    RtcpHeaderSetRc(ch,rc);	/* as we don't yet support multi source receiving */
-    RtcpHeaderSetLength(ch,(bytes_len/4)-1);
-
+    char *ptr = (char *)ch;
+    ptr[0] = 0x81;
+    ch->type = type;
+    PUT_16(&ch->length[0], (bytes_len/4)-1);
 	return;
 }
 
@@ -171,8 +181,8 @@ uint32_t RtcpReceiveReport(char *buf, uint32_t len, RtpSession *sess)
     }
 #endif
     ReceiveReport *rr = &rrr->rr;
-    rr->ssrc = sess->ssrc;
-    rr->fl_cnpl = 0x00;
+    rr->ssrc = sess->stats.rtp_identifier;
+    rr->fl_cnpl = 0xFFFFFFFF;
 
     /* RTCP: SSRC Contents: Extended highest sequence */
     PUT_16(rr->cycle, 0x01);
