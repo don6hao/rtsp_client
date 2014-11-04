@@ -118,25 +118,20 @@ int32_t ParseTimeout(char *buf, uint32_t size, RtspSession *sess)
 {
     char *p = strstr(buf, TIME_OUT);
     if (!p) {
-        printf("GET_PARAMETER: %s not found\n", SETUP_SESSION);
+        printf("GET_PARAMETER: %s not found\n", TIME_OUT);
         return False;
     }
-    p = strchr((const char *)p, '=');
-    if (!p) {
-        printf("GET_PARAMETER: '=' not found\n");
-        return False;
-    }
-    char *sep = strchr((const char *)p, ';');
-    if (NULL == sep){
-        sep = strstr((const char *)p, "\r\n");
-        if (NULL == sep){
-            printf("GET_PARAMETER: %s not found\n", "\r\n");
-            return False;
+    p += strlen(TIME_OUT);
+    char *ptr = p;
+    do{
+        if (*ptr == ';' || *ptr == '\r'){
+            break;
         }
-    }
+        ptr++;
+    }while(1);
 
     char tmp[8] = {0x00};
-    strncpy(tmp, p+1, sep-p-1);
+    strncpy(tmp, p, ptr-p);
     sess->timeout = atol(tmp);
 #ifdef RTSP_DEBUG
     printf("timeout : %d\n", sess->timeout);
