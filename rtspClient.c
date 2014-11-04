@@ -157,6 +157,7 @@ void* RtspHandleUdpConnect(void* args)
     }
 #endif
 
+    gettimeofday(&sess->rtpsess.rtcptv, NULL);
     struct timeval timeout;
     timeout.tv_sec=1;
     timeout.tv_usec=0;
@@ -204,6 +205,14 @@ void* RtspHandleUdpConnect(void* args)
                 break;
             }else if (RTCP_SR == ret){
                 printf("Receive RTCP Sender Report!\n");
+                gettimeofday(&sess->rtpsess.rtcptv, NULL);
+            }
+        }
+        if (FD_ISSET(rtcpfd, &writefd)){
+            struct timeval now;
+            gettimeofday(&now, NULL);
+            if (0x02 < now.tv_sec - sess->rtpsess.rtcptv.tv_sec){
+                sess->rtpsess.rtcptv = now;
                 char tmp[512];
                 uint32_t len = RtcpReceiveReport(tmp, sizeof(tmp), &sess->rtpsess);
                 RtspSendUdpRtpData(rtcpfd, tmp, len, sess->ip, sess->transport.udp.sport_to);

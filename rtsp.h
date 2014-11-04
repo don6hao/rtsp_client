@@ -15,10 +15,12 @@
 #define CMD_TCP_SETUP         "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nTransport: RTP/AVP/TCP;unicast;interleaved=0-1\r\n\r\n"
 #define CMD_UDP_SETUP         "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nTransport: RTP/AVP;unicast;client_port=%d-%d\r\n\r\n"
 #define CMD_PLAY          "PLAY %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\nRange: npt=0.00-\r\n\r\n"
+#define CMD_GET_PARAMETER          "GET_PARAMETER %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\n\r\n"
 #define CMD_TEARDOWN      "TEARDOWN %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\n\r\n"
 #define UDP_TRANSPORT     "RTP/AVP"
 #define TCP_TRANSPORT     "RTP/AVP/TCP"
 #define TCP_INTERLEAVED   "interleaved="
+#define TIME_OUT          "timeout="
 
 #define SETUP_SESSION      "Session: "
 #define SETUP_CPORT    "client_port="
@@ -77,6 +79,7 @@ typedef struct RTSPSESSION{
     uint32_t port;
     int32_t sockfd;
     int32_t cseq;
+    uint32_t timeout;
 
     uint32_t packetization; /* Packetization mode from SDP data */
     union{

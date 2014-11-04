@@ -10,6 +10,7 @@
 #include "net.h"
 
 
+static int32_t ParseTimeout(char *buf, uint32_t size, RtspSession *sess);
 static int32_t ParseUdpPort(char *buf, uint32_t size, RtspSession *sess);
 static int32_t ParseInterleaved(char *buf, uint32_t num, RtspSession *sess);
 inline static void RtspIncreaseCseq(RtspSession *sess);
@@ -398,6 +399,36 @@ static int32_t ParseUdpPort(char *buf, uint32_t size, RtspSession *sess)
     return True;
 }
 
+static int32_t ParseTimeout(char *buf, uint32_t size, RtspSession *sess)
+{
+    char *p = strstr(buf, TIME_OUT);
+    if (!p) {
+        printf("GET_PARAMETER: %s not found\n", SETUP_SESSION);
+        return False;
+    }
+    p = strchr((const char *)p, '=');
+    if (!p) {
+        printf("GET_PARAMETER: '=' not found\n");
+        return False;
+    }
+    char *sep = strchr((const char *)p, ';');
+    if (NULL == sep){
+        sep = strstr((const char *)p, "\r\n");
+        if (NULL == sep){
+            printf("GET_PARAMETER: %s not found\n", "\r\n");
+            return False;
+        }
+    }
+
+    char tmp[8] = {0x00};
+    strncpy(tmp, p+1, sep-p-1);
+    sess->timeout = atol(tmp);
+#ifdef RTSP_DEBUG
+    printf("timeout : %d\n", sess->timeout);
+#endif
+    return True;
+}
+
 static int32_t ParseSessionID(char *buf, uint32_t size, RtspSession *sess)
 {
     /* Session ID */
@@ -512,7 +543,6 @@ int32_t RtspPlayMsg(RtspSession *sess)
     printf("+++++++++++++++++++  PLAY: command  ++++++++++++++++++++++++++\n");
 #endif
     memset(buf, '\0', sizeof(buf));
-    printf("url : %s\n", sess->url);
     num = snprintf(buf, size, CMD_PLAY, sess->url, sess->cseq, sess->sessid);
     if (num < 0x00){
         fprintf(stderr, "%s : snprintf error!\n", __func__);
@@ -551,6 +581,55 @@ int32_t RtspPlayMsg(RtspSession *sess)
     return ret;
 }
 
+
+int32_t RtspGetParameterMsg(RtspSession *sess)
+{
+    int32_t num, ret = True, status, size=4096;
+    char  *err, buf[size];
+    int32_t sock = sess->sockfd;
+
+#ifdef RTSP_DEBUG
+    printf("+++++++++++++++++++  Get Parameter: command  ++++++++++++++++++++++++++\n");
+#endif
+    memset(buf, '\0', sizeof(buf));
+    num = snprintf(buf, size, CMD_GET_PARAMETER, sess->url, sess->cseq, sess->sessid);
+    if (num < 0x00){
+        fprintf(stderr, "%s : snprintf error!\n", __func__);
+        return False;
+    }
+    num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
+    if (num < 0){
+        fprintf(stderr, "%s : Send Error\n", __func__);
+        return False;
+    }
+
+#ifdef RTSP_DEBUG
+    printf("GET_PARAMETER Request: %s\n", buf);
+#endif
+
+    memset(buf, '\0', sizeof(buf));
+    num = RtspTcpRcvMsg(sock, buf, size-1);
+    if (num <= 0) {
+        fprintf(stderr, "Error: Server did not respond properly, closing...");
+        return False;
+    }
+
+#ifdef RTSP_DEBUG
+    printf("GET PARAMETER Reply: %s\n", buf);
+#endif
+    status = RtspResponseStatus(buf, &err);
+    if (status == 200) {
+        printf("GET_PARAMETER: response status %i (%i bytes)\n", status, num);
+        ParseTimeout(buf, num, sess);
+    }
+    else {
+        fprintf(stderr, "GET_PARAMETER: response status %i: %s\n", status, err);
+        ret = False;
+    }
+
+    RtspIncreaseCseq(sess);
+    return ret;
+}
 
 int32_t RtspTeardownMsg(RtspSession *sess)
 {
@@ -603,6 +682,7 @@ int32_t RtspTeardownMsg(RtspSession *sess)
 
 int32_t RtspStatusMachine(RtspSession *sess)
 {
+    struct timeval now, playnow;
     do{
         switch(sess->status){
             case RTSP_START:
@@ -634,7 +714,16 @@ int32_t RtspStatusMachine(RtspSession *sess)
                 sess->status = RTSP_PLAY;
                 break;
             case RTSP_PLAY:
-                sleep(1);
+                RtspGetParameterMsg(sess);
+                gettimeofday(&playnow, NULL);
+                sess->status = RTSP_GET_PARAMETER;
+                break;
+            case RTSP_GET_PARAMETER:
+                gettimeofday(&now, NULL);
+                if ((now.tv_sec - playnow.tv_sec) > sess->timeout-5){
+                    RtspGetParameterMsg(sess);
+                    playnow = now;
+                }
                 break;
             case RTSP_TEARDOWN:
                 if (False == RtspTeardownMsg(sess)){

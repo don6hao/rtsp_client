@@ -7,6 +7,7 @@
 #include "rtp.h"
 
 
+static int32_t CreateSDES(char *buf, uint32_t size, RtpSession *sess);
 static void ParseSenderDescribe(char *buf, uint32_t len, char *sdes);
 static void ParseSenderReport(char *buf, uint32_t len, char *srh, RtpStats *stats);
 static void ParseSenderReport(char *buf, uint32_t len, char *srh, RtpStats *stats)
@@ -17,15 +18,15 @@ static void ParseSenderReport(char *buf, uint32_t len, char *srh, RtpStats *stat
 
     rsr->ssrc = htonl(GET_32((unsigned char *)ptr));
     ptr += 4;
-    sr->ntp_timestamp_msw = GET_32(ptr);
+    sr->ntp_timestamp_msw = GET_32((unsigned char *)ptr);
     ptr += 4;
-    sr->ntp_timestamp_lsw = GET_32(ptr);
+    sr->ntp_timestamp_lsw = GET_32((unsigned char *)ptr);
     ptr += 4;
-    sr->rtp_timestamp = GET_32(ptr);
+    sr->rtp_timestamp = GET_32((unsigned char *)ptr);
     ptr += 4;
-    sr->senders_packet_count = GET_32(ptr);
+    sr->senders_packet_count = GET_32((unsigned char *)ptr);
     ptr += 4;
-    sr->senders_octet_count = GET_32(ptr);
+    sr->senders_octet_count = GET_32((unsigned char *)ptr);
     ptr += 4;
 
     if ((ptr-buf) > len){
@@ -86,26 +87,19 @@ uint32_t ParseRtcp(char *buf, uint32_t len, RtpStats *stats)
 
     while (i < len) {
         RtcpHeader *rtcph = (RtcpHeader *)(ptr);
-#if 0
-        start = i;
+#if 1
         /* RTCP */
-        rtcph[idx].version   = (buf[i] >> 6)&0x03;
-        rtcph[idx].padding   = ((buf[i] & 0x20) >> 5)&0x01;
-        rtcph[idx].rc        = buf[i] & 0x1F;
-        i++;
-        rtcph[idx].type      = (buf[i]);
-        /* length */
-        uint32_t length = GET_16(&buf[i]);
-        PUT_16(&rtcph[idx].length[0], length);
-        i += 2;
+        rtcph->version   = (buf[i] >> 6)&0x03;
+        rtcph->padbit    = ((buf[i] & 0x20) >> 5)&0x01;
+        rtcph->rc        = buf[i] & 0x1F;
 #endif
 #ifdef RTSP_DEBUG
         if (1){
             printf("RTCP Version  : %i\n", rtcph->version);
             printf("     Padding  : %i\n", rtcph->padbit);
-            printf("     RC: %i\n", rtcph->rc);
+            printf("     RC       : %i\n", rtcph->rc);
             printf("     Type     : %i\n", rtcph->type);
-            printf("     Length     : %i\n", GET_16(rtcph->length));
+            printf("     Length   : %i\n", GET_16(rtcph->length));
         }
 #endif
         ptr += sizeof(RtcpHeader);
@@ -136,13 +130,13 @@ static void InitRtcpHeader(RtcpHeader *ch, uint32_t type, uint32_t rc, uint32_t 
 	return;
 }
 
-static uint32_t InitRtcpReceiveReport(char *buf, uint32_t size){
-
-	RtcpRR *rrr=(RtcpRR *)buf;
-	if (size < sizeof(RtcpRR)) return 0;
-	InitRtcpHeader(&rrr->hdr, RTCP_RR, 1, sizeof(RtcpRR));
+static uint32_t InitRtcpReceiveReport(char *buf, uint32_t size)
+{
+    RtcpRR *rrr=(RtcpRR *)buf;
+    if (size < sizeof(RtcpRR)) return 0;
+    InitRtcpHeader(&rrr->hdr, RTCP_RR, 1, sizeof(RtcpRR));
     rrr->ssrc = htonl(RTCP_SSRC);
-	return sizeof(RtcpRR);
+    return sizeof(RtcpRR);
 }
 
 uint32_t RtcpReceiveReport(char *buf, uint32_t len, RtpSession *sess)
@@ -207,5 +201,55 @@ uint32_t RtcpReceiveReport(char *buf, uint32_t len, RtpSession *sess)
     }
     rr->delay_snc_last_sr = rtpst->delay_snc_last_SR;
 
-    return sizeof(RtcpRR);
+    uint32_t size = CreateSDES(buf+sizeof(RtcpRR), len-sizeof(RtcpRR), sess);
+    return sizeof(RtcpRR)+size;
+}
+
+static int32_t CreateSDES(char *buf, uint32_t size, RtpSession *sess)
+{
+    RtcpHeader *rhdr = (RtcpHeader *)buf;
+    if (size < sizeof(RtcpHeader)) return 0;
+    InitRtcpHeader(rhdr, RTCP_SDES, 1, sizeof(RtcpHeader));
+
+    /*identifier*/
+    char *ptr = buf + sizeof(RtcpHeader);
+    PUT_32((unsigned char *)ptr, htonl(sess->stats.rtp_identifier));
+    ptr += 4;
+
+    /* SDES ITEMS */
+    /* SDES CANME */
+    *ptr = 0x01;
+    ptr += 1;
+
+    /* SDES Length */
+    *ptr = 0x0a;
+    ptr += 1;
+
+    /* SDES TEXT */
+    char text[] = "1234567890";
+    memcpy((void *)ptr, (const void *)text, strlen(text));
+    ptr += strlen(text);
+
+#if 0
+    /* SDES TOOL */
+    *ptr = 0x06;
+    ptr += 1;
+
+    /* SDES length */
+    char tool[] = "90n6h.0.1";
+    *ptr = strlen(tool);
+    ptr += 1;
+
+    /* SDES TEXT */
+    memcpy((void *)ptr, (const void *)tool, strlen(tool));
+    ptr += strlen(tool);
+#endif
+
+    /* SDES END */
+    *ptr = 0x00;
+    ptr += 1;
+
+    PUT_16(&rhdr->length[0], ((ptr-buf+3)/4)-1);
+
+    return (ptr-buf);
 }

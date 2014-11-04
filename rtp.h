@@ -127,6 +127,7 @@ typedef struct Rtp_Stats{
 typedef struct Rtp_Session{
     uint32_t seq;
     uint32_t ssrc;
+    struct timeval rtcptv;
     RtpStats stats;
 }RtpSession;
 
