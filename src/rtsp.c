@@ -16,8 +16,7 @@ int32_t RtspOptionsCommand(RtspSession *sess)
     int32_t num;
     int32_t ret = True;
     int32_t status;
-    int32_t size = 4096;
-    char *err = NULL;
+    int32_t size = 1024;
     char buf[size];
     int32_t sock = sess->sockfd;
 
@@ -31,6 +30,7 @@ int32_t RtspOptionsCommand(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
+
     num = RtspTcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
@@ -50,16 +50,14 @@ int32_t RtspOptionsCommand(RtspSession *sess)
 #ifdef RTSP_DEBUG
     printf("\nOptions Reply: %s\n", buf);
 #endif
-    status = RtspResponseStatus(buf, &err);
+    status = RtspResponseStatus(buf);
     if (status == 200){
         printf("OPTIONS: response status %i (%i bytes)\n", status, num);
     }
     else{
-        printf("OPTIONS: response status %i: %s\n", status, err);
+        printf("OPTIONS: response status %i\n", status);
         ret = False;
     }
-    if (NULL != err)
-        free(err);
     RtspIncreaseCseq(sess);
 
     return ret;
@@ -71,7 +69,6 @@ int32_t RtspDescribeCommand(RtspSession *sess)
     int32_t ret = True;
     int32_t status;
     int32_t size = 4096;
-    char *err;
     char buf[size];
     int32_t sock = sess->sockfd;
 
@@ -106,16 +103,14 @@ int32_t RtspDescribeCommand(RtspSession *sess)
 #ifdef RTSP_DEBUG
     printf("\nDescribe Reply: %s\n", buf);
 #endif
-    status = RtspResponseStatus(buf, &err);
+    status = RtspResponseStatus(buf);
     if (status == 200) {
         printf("DESCRIBE: response status %i (%i bytes)\n", status, num);
     }
     else {
-        printf("DESCRIBE: response status %i: %s\n", status, err);
+        printf("DESCRIBE: response status %i\n", status);
         return False;
     }
-    if (NULL != err)
-        free(err);
 #if 0
     size = GetSDPLength(buf, num);
     num = RtspTcpReceiveData(sock, buf, size);
@@ -134,7 +129,6 @@ int32_t RtspSetupCommand(RtspSession *sess)
 {
     int32_t num, ret = True, status;
     int32_t size = 4096;
-    char *err;
     char buf[size];
     int32_t sock = sess->sockfd;
 
@@ -184,12 +178,12 @@ int32_t RtspSetupCommand(RtspSession *sess)
 #ifdef RTSP_DEBUG
     printf("SETUP Reply: %s\n", buf);
 #endif
-    status = RtspResponseStatus(buf, &err);
+    status = RtspResponseStatus(buf);
     if (status == 200) {
         printf("SETUP: response status %i (%i bytes)\n", status, num);
     }
     else {
-        printf("SETUP: response status %i: %s\n", status, err);
+        printf("SETUP: response status %i\n", status);
         return False;
     }
 
@@ -207,7 +201,7 @@ int32_t RtspSetupCommand(RtspSession *sess)
 int32_t RtspPlayCommand(RtspSession *sess)
 {
     int32_t num, ret = True, status, size=4096;
-    char  *err, buf[size];
+    char  buf[size];
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
@@ -239,12 +233,12 @@ int32_t RtspPlayCommand(RtspSession *sess)
 #ifdef RTSP_DEBUG
     printf("PLAY Reply: %s\n", buf);
 #endif
-    status = RtspResponseStatus(buf, &err);
+    status = RtspResponseStatus(buf);
     if (status == 200) {
         printf("PLAY: response status %i (%i bytes)\n", status, num);
     }
     else {
-        fprintf(stderr, "PLAY: response status %i: %s\n", status, err);
+        fprintf(stderr, "PLAY: response status %i\n", status);
         ret = False;
     }
 
@@ -256,7 +250,7 @@ int32_t RtspPlayCommand(RtspSession *sess)
 int32_t RtspGetParameterCommand(RtspSession *sess)
 {
     int32_t num, ret = True, status, size=4096;
-    char  *err, buf[size];
+    char  buf[size];
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
@@ -288,13 +282,13 @@ int32_t RtspGetParameterCommand(RtspSession *sess)
 #ifdef RTSP_DEBUG
     printf("GET PARAMETER Reply: %s\n", buf);
 #endif
-    status = RtspResponseStatus(buf, &err);
+    status = RtspResponseStatus(buf);
     if (status == 200) {
         printf("GET_PARAMETER: response status %i (%i bytes)\n", status, num);
         ParseTimeout(buf, num, sess);
     }
     else {
-        fprintf(stderr, "GET_PARAMETER: response status %i: %s\n", status, err);
+        fprintf(stderr, "GET_PARAMETER: response status %i\n", status);
         ret = False;
     }
 
@@ -305,7 +299,7 @@ int32_t RtspGetParameterCommand(RtspSession *sess)
 int32_t RtspTeardownCommand(RtspSession *sess)
 {
     int32_t num, ret = True, status, size=4096;
-    char  *err, buf[size];
+    char  buf[size];
     int32_t sock = sess->sockfd;
 
 #ifdef RTSP_DEBUG
@@ -338,12 +332,12 @@ int32_t RtspTeardownCommand(RtspSession *sess)
 #ifdef RTSP_DEBUG
     printf("TEARDOWN Reply: %s\n", buf);
 #endif
-    status = RtspResponseStatus(buf, &err);
+    status = RtspResponseStatus(buf);
     if (status == 200) {
         printf("TEARDOWN: response status %i (%i bytes)\n", status, num);
     }
     else {
-        fprintf(stderr, "TEARDOWN: response status %i: %s\n", status, err);
+        fprintf(stderr, "TEARDOWN: response status %i\n", status);
         ret = False;
     }
 

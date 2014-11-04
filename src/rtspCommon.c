@@ -234,37 +234,22 @@ void RtspIncreaseCseq(RtspSession *sess)
     return;
 }
 
-int32_t RtspResponseStatus(char *response, char **error)
+int32_t RtspResponseStatus(char *response)
 {
-    int32_t size = 256, err_size = 0x00;
     int32_t offset = sizeof(RTSP_RESPONSE) - 1;
-    char buf[8], *sep = NULL, *eol = NULL;
-    *error = NULL;
+    char buf[8], *sep = NULL;
 
     if (strncmp((const char*)response, (const char*)RTSP_RESPONSE, offset) != 0) {
-        *error = calloc(1, size);
-        snprintf((char *)*error, size, "Invalid RTSP response format");
         return -1;
     }
 
     sep = strchr((const char *)response+offset, ' ');
     if (!sep) {
-        *error = calloc(1, size);
-        snprintf((char *)*error, size, "Invalid RTSP response format");
         return -1;
     }
 
     memset(buf, '\0', sizeof(buf));
     strncpy((char *)buf, (const char *)(response+offset), sep-response-offset);
-
-    eol = strchr(response, '\r');
-    err_size = (eol - response) - offset - 1 - strlen(buf);
-    *error = calloc(1, err_size + 1);
-    if (NULL == *error){
-        fprintf(stderr, "%s: Error calloc\n", __func__);
-        return -1;
-    }
-    strncpy(*error, response + offset + 1 + strlen(buf), err_size);
 
     return atoi(buf);
 }
