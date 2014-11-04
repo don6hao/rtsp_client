@@ -131,7 +131,7 @@ int32_t RtspSocketCork(int32_t fd, int32_t state)
     return setsockopt(fd, IPPROTO_TCP, TCP_CORK, &state, sizeof(state));
 }
 
-int32_t RtspTcpSendMsg(int32_t fd, char *buf, uint32_t size)
+int32_t RtspTcpSendData(int32_t fd, char *buf, uint32_t size)
 {
     int32_t num = 0x00;
     num = send(fd, buf, size, 0);
@@ -140,7 +140,7 @@ int32_t RtspTcpSendMsg(int32_t fd, char *buf, uint32_t size)
 }
 
 
-int32_t RtspTcpRcvMsg(int32_t fd, char *buf, uint32_t size)
+int32_t RtspTcpReceiveData(int32_t fd, char *buf, uint32_t size)
 {
     int32_t num = recv(fd, buf, size, 0);
     return num;

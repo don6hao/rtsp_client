@@ -106,11 +106,11 @@ typedef struct RTSPSESSION{
     char  reserve[2];
 }RtspSession;
 
-int32_t RtspOptionsMsg(RtspSession *sess);
-int32_t RtspDescribeMsg(RtspSession *sess);
-int32_t RtspSetupMsg(RtspSession *sess);
-int32_t RtspPlayMsg(RtspSession *sess);
-int32_t RtspTeardownMsg(RtspSession *sess);
+int32_t RtspOptionsCommand(RtspSession *sess);
+int32_t RtspDescribeCommand(RtspSession *sess);
+int32_t RtspSetupCommand(RtspSession *sess);
+int32_t RtspPlayCommand(RtspSession *sess);
+int32_t RtspTeardownCommand(RtspSession *sess);
 int32_t RtspStatusMachine(RtspSession *sess);
 
 #endif

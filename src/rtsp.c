@@ -11,7 +11,7 @@
 #include "net.h"
 
 
-int32_t RtspOptionsMsg(RtspSession *sess)
+int32_t RtspOptionsCommand(RtspSession *sess)
 {
     int32_t num;
     int32_t ret = True;
@@ -31,7 +31,7 @@ int32_t RtspOptionsMsg(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
-    num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
+    num = RtspTcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -41,7 +41,7 @@ int32_t RtspOptionsMsg(RtspSession *sess)
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpRcvMsg(sock, buf, size-1);
+    num = RtspTcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         printf("Error: Server did not respond properly, closing...");
         return False;
@@ -65,7 +65,7 @@ int32_t RtspOptionsMsg(RtspSession *sess)
     return ret;
 }
 
-int32_t RtspDescribeMsg(RtspSession *sess)
+int32_t RtspDescribeCommand(RtspSession *sess)
 {
     int32_t num;
     int32_t ret = True;
@@ -86,7 +86,7 @@ int32_t RtspDescribeMsg(RtspSession *sess)
         return False;
     }
 
-    num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
+    num = RtspTcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -97,7 +97,7 @@ int32_t RtspDescribeMsg(RtspSession *sess)
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpRcvMsg(sock, buf, size-1);
+    num = RtspTcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         printf("Error: Server did not respond properly, closing...");
         return False;
@@ -118,7 +118,7 @@ int32_t RtspDescribeMsg(RtspSession *sess)
         free(err);
 #if 0
     size = GetSDPLength(buf, num);
-    num = RtspTcpRcvMsg(sock, buf, size);
+    num = RtspTcpReceiveData(sock, buf, size);
     if (num <= 0) {
         printf("Error: Server did not respond properly, closing...");
         return False;
@@ -130,7 +130,7 @@ int32_t RtspDescribeMsg(RtspSession *sess)
     return ret;
 }
 
-int32_t RtspSetupMsg(RtspSession *sess)
+int32_t RtspSetupCommand(RtspSession *sess)
 {
     int32_t num, ret = True, status;
     int32_t size = 4096;
@@ -165,7 +165,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
-    num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
+    num = RtspTcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -175,7 +175,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
     printf("SETUP Request: %s\n", buf);
 #endif
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpRcvMsg(sock, buf, size-1);
+    num = RtspTcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         fprintf(stderr, "Error: Server did not respond properly, closing...");
         return False;
@@ -204,7 +204,7 @@ int32_t RtspSetupMsg(RtspSession *sess)
     return ret;
 }
 
-int32_t RtspPlayMsg(RtspSession *sess)
+int32_t RtspPlayCommand(RtspSession *sess)
 {
     int32_t num, ret = True, status, size=4096;
     char  *err, buf[size];
@@ -219,7 +219,7 @@ int32_t RtspPlayMsg(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
-    num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
+    num = RtspTcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -230,7 +230,7 @@ int32_t RtspPlayMsg(RtspSession *sess)
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpRcvMsg(sock, buf, size-1);
+    num = RtspTcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         fprintf(stderr, "Error: Server did not respond properly, closing...");
         return False;
@@ -253,7 +253,7 @@ int32_t RtspPlayMsg(RtspSession *sess)
 }
 
 
-int32_t RtspGetParameterMsg(RtspSession *sess)
+int32_t RtspGetParameterCommand(RtspSession *sess)
 {
     int32_t num, ret = True, status, size=4096;
     char  *err, buf[size];
@@ -268,7 +268,7 @@ int32_t RtspGetParameterMsg(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
-    num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
+    num = RtspTcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -279,7 +279,7 @@ int32_t RtspGetParameterMsg(RtspSession *sess)
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpRcvMsg(sock, buf, size-1);
+    num = RtspTcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         fprintf(stderr, "Error: Server did not respond properly, closing...");
         return False;
@@ -302,7 +302,7 @@ int32_t RtspGetParameterMsg(RtspSession *sess)
     return ret;
 }
 
-int32_t RtspTeardownMsg(RtspSession *sess)
+int32_t RtspTeardownCommand(RtspSession *sess)
 {
     int32_t num, ret = True, status, size=4096;
     char  *err, buf[size];
@@ -318,7 +318,7 @@ int32_t RtspTeardownMsg(RtspSession *sess)
         return False;
     }
 
-    num = RtspTcpSendMsg(sock, buf, (uint32_t)num);
+    num = RtspTcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -329,7 +329,7 @@ int32_t RtspTeardownMsg(RtspSession *sess)
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpRcvMsg(sock, buf, size-1);
+    num = RtspTcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         fprintf(stderr, "Error: Server did not respond properly, closing...");
         return False;
@@ -357,48 +357,48 @@ int32_t RtspStatusMachine(RtspSession *sess)
     do{
         switch(sess->status){
             case RTSP_START:
-                if (False == RtspOptionsMsg(sess)){
-                    fprintf(stderr, "Error: RtspOptionsMsg.\n");
+                if (False == RtspOptionsCommand(sess)){
+                    fprintf(stderr, "Error: RtspOptionsCommand.\n");
                     return False;
                 }
                 sess->status = RTSP_OPTIONS;
                 break;
             case RTSP_OPTIONS:
-                if (False == RtspDescribeMsg(sess)){
-                    fprintf(stderr, "Error: RtspDescribeMsg.\n");
+                if (False == RtspDescribeCommand(sess)){
+                    fprintf(stderr, "Error: RtspDescribeCommand.\n");
                     return False;
                 }
                 sess->status = RTSP_DESCRIBE;
                 break;
             case RTSP_DESCRIBE:
-                if (False == RtspSetupMsg(sess)){
-                    fprintf(stderr, "Error: RtspSetupMsg.\n");
+                if (False == RtspSetupCommand(sess)){
+                    fprintf(stderr, "Error: RtspSetupCommand.\n");
                     return False;
                 }
                 sess->status = RTSP_SETUP;
                 break;
             case RTSP_SETUP:
-                if (False == RtspPlayMsg(sess)){
-                    fprintf(stderr, "Error: RtspPlayMsg.\n");
+                if (False == RtspPlayCommand(sess)){
+                    fprintf(stderr, "Error: RtspPlayCommand.\n");
                     return False;
                 }
                 sess->status = RTSP_PLAY;
                 break;
             case RTSP_PLAY:
-                RtspGetParameterMsg(sess);
+                RtspGetParameterCommand(sess);
                 gettimeofday(&playnow, NULL);
                 sess->status = RTSP_GET_PARAMETER;
                 break;
             case RTSP_GET_PARAMETER:
                 gettimeofday(&now, NULL);
                 if ((now.tv_sec - playnow.tv_sec) > sess->timeout-5){
-                    RtspGetParameterMsg(sess);
+                    RtspGetParameterCommand(sess);
                     playnow = now;
                 }
                 break;
             case RTSP_TEARDOWN:
-                if (False == RtspTeardownMsg(sess)){
-                    fprintf(stderr, "Error: RtspTeardownMsg.\n");
+                if (False == RtspTeardownCommand(sess)){
+                    fprintf(stderr, "Error: RtspTeardownCommand.\n");
                     return False;
                 }
                 sess->status = RTSP_QUIT;

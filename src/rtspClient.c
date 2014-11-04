@@ -87,7 +87,7 @@ void* RtspHandleTcpConnect(void* args)
     memset(framebuf, 0x00, sizeof(framebuf));
     do{
         pos = buf;
-        num = RtspTcpRcvMsg(sockfd, (char *)&rot, sizeof(RtpOverTcp));
+        num = RtspTcpReceiveData(sockfd, (char *)&rot, sizeof(RtpOverTcp));
         if (num <= 0x00){
             fprintf(stderr, "recv error or connection closed!\n");
             break;
@@ -98,7 +98,7 @@ void* RtspHandleTcpConnect(void* args)
             length = GET_16(&rot.len[0]);
             int32_t size = length;
             do{
-                num = RtspTcpRcvMsg(sockfd, pos, size);
+                num = RtspTcpReceiveData(sockfd, pos, size);
                 if (num <= 0x00){
                     fprintf(stderr, "recv error or connection closed!\n");
                     break;
