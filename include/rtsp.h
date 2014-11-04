@@ -21,6 +21,7 @@
 #define TCP_TRANSPORT     "RTP/AVP/TCP"
 #define TCP_INTERLEAVED   "interleaved="
 #define TIME_OUT          "timeout="
+#define OPTIONS_PUBLIC    "Public: "
 
 #define SETUP_SESSION      "Session: "
 #define SETUP_CPORT    "client_port="
@@ -33,7 +34,7 @@
 #define SDP_A_CONTROL      "a=control:"
 
 typedef enum{
-    RTSP_START = 0x0F,
+    RTSP_START,
     RTSP_OPTIONS,
     RTSP_DESCRIBE,
     RTSP_SETUP,
@@ -50,6 +51,11 @@ typedef enum{
     RTP_AVP_TCP,
     RTP_AVP_UDP
 }EN_TRANSPORTS;
+
+typedef struct Public_Table{
+    char cmd[16];
+    uint32_t key;
+}PublicTbl;
 
 typedef struct RTP_TCP{
     char  start;          /* interleaved start */
@@ -86,6 +92,7 @@ typedef struct RTSPSESSION{
         RtpUdp    udp;
         RtpTcp    tcp;
     }transport;
+    PublicTbl     *pubtbl;
     RtpSession    rtpsess;
     AudioMedia    amedia;
     VideoMedia    vmedia;
