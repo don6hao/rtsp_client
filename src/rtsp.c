@@ -183,7 +183,7 @@ static uint32_t GetSDPLength(char *buf, uint32_t size)
 {
     char *p = strstr(buf, "Content-Length: ");
     if (!p) {
-        printf("SETUP: Error, Transport header not found\n");
+        printf("Describe: Error, Transport header not found\n");
         return 0x00;
     }
 
@@ -249,17 +249,18 @@ int32_t RtspDescribeMsg(RtspSession *sess)
     }
     else {
         printf("DESCRIBE: response status %i: %s\n", status, err);
-        ret = False;
+        return False;
     }
     if (NULL != err)
         free(err);
-
-    size = GetSDPLength(buf, size);
+#if 1
+    size = GetSDPLength(buf, num);
     num = RtspTcpRcvMsg(sock, buf, size);
     if (num <= 0) {
         printf("Error: Server did not respond properly, closing...");
         return False;
     }
+#endif
     ParseSdpProto(buf, num, sess);
     RtspIncreaseCseq(sess);
 
@@ -442,17 +443,26 @@ static int32_t ParseSessionID(char *buf, uint32_t size, RtspSession *sess)
         printf("SETUP: ' ' not found\n");
         return False;
     }
-    char *sep = strchr((const char *)p, ';');
+
+    char *sep = strstr((const char *)p, "\r\n");
     if (NULL == sep){
-        sep = strstr((const char *)p, "\r\n");
-        if (NULL == sep){
-            printf("SETUP: %s not found\n", "\r\n");
-            return False;
-        }
+        printf("SETUP: %s not found\n", "\r\n");
+        return False;
     }
 
-    memset(sess->sessid, '\0', sizeof(sess->sessid));
-    memcpy((void *)sess->sessid, (const void *)p+1, sep-p-1);
+    char *nsep = strchr((const char *)p, ';');
+    if (NULL == nsep){
+        printf("SETUP: %s not found\n", ";");
+        return False;
+    }
+
+    if (nsep < sep){
+        memset(sess->sessid, '\0', sizeof(sess->sessid));
+        memcpy((void *)sess->sessid, (const void *)p+1, nsep-p-1);
+    }else if (nsep > sep){
+        memset(sess->sessid, '\0', sizeof(sess->sessid));
+        memcpy((void *)sess->sessid, (const void *)p+1, sep-p-1);
+    }
 #ifdef RTSP_DEBUG
     printf("sessid : %s\n", sess->sessid);
 #endif
