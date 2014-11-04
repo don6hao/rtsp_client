@@ -31,7 +31,7 @@ int32_t RtspOptionsCommand(RtspSession *sess)
         return False;
     }
 
-    num = RtspTcpSendData(sock, buf, (uint32_t)num);
+    num = TcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -41,7 +41,7 @@ int32_t RtspOptionsCommand(RtspSession *sess)
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpReceiveData(sock, buf, size-1);
+    num = TcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         printf("Error: Server did not respond properly, closing...");
         return False;
@@ -83,7 +83,7 @@ int32_t RtspDescribeCommand(RtspSession *sess)
         return False;
     }
 
-    num = RtspTcpSendData(sock, buf, (uint32_t)num);
+    num = TcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -94,7 +94,7 @@ int32_t RtspDescribeCommand(RtspSession *sess)
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpReceiveData(sock, buf, size-1);
+    num = TcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         printf("Error: Server did not respond properly, closing...");
         return False;
@@ -113,7 +113,7 @@ int32_t RtspDescribeCommand(RtspSession *sess)
     }
 #if 0
     size = GetSDPLength(buf, num);
-    num = RtspTcpReceiveData(sock, buf, size);
+    num = TcpReceiveData(sock, buf, size);
     if (num <= 0) {
         printf("Error: Server did not respond properly, closing...");
         return False;
@@ -159,7 +159,7 @@ int32_t RtspSetupCommand(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
-    num = RtspTcpSendData(sock, buf, (uint32_t)num);
+    num = TcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -169,7 +169,7 @@ int32_t RtspSetupCommand(RtspSession *sess)
     printf("SETUP Request: %s\n", buf);
 #endif
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpReceiveData(sock, buf, size-1);
+    num = TcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         fprintf(stderr, "Error: Server did not respond properly, closing...");
         return False;
@@ -213,7 +213,7 @@ int32_t RtspPlayCommand(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
-    num = RtspTcpSendData(sock, buf, (uint32_t)num);
+    num = TcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -224,7 +224,7 @@ int32_t RtspPlayCommand(RtspSession *sess)
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpReceiveData(sock, buf, size-1);
+    num = TcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         fprintf(stderr, "Error: Server did not respond properly, closing...");
         return False;
@@ -262,7 +262,7 @@ int32_t RtspGetParameterCommand(RtspSession *sess)
         fprintf(stderr, "%s : snprintf error!\n", __func__);
         return False;
     }
-    num = RtspTcpSendData(sock, buf, (uint32_t)num);
+    num = TcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -273,7 +273,7 @@ int32_t RtspGetParameterCommand(RtspSession *sess)
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpReceiveData(sock, buf, size-1);
+    num = TcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         fprintf(stderr, "Error: Server did not respond properly, closing...");
         return False;
@@ -312,7 +312,7 @@ int32_t RtspTeardownCommand(RtspSession *sess)
         return False;
     }
 
-    num = RtspTcpSendData(sock, buf, (uint32_t)num);
+    num = TcpSendData(sock, buf, (uint32_t)num);
     if (num < 0){
         fprintf(stderr, "%s : Send Error\n", __func__);
         return False;
@@ -323,7 +323,7 @@ int32_t RtspTeardownCommand(RtspSession *sess)
 #endif
 
     memset(buf, '\0', sizeof(buf));
-    num = RtspTcpReceiveData(sock, buf, size-1);
+    num = TcpReceiveData(sock, buf, size-1);
     if (num <= 0) {
         fprintf(stderr, "Error: Server did not respond properly, closing...");
         return False;

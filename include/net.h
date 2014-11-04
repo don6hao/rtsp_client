@@ -4,15 +4,15 @@
 #include <stdint.h>
 #include "rtspType.h"
 
-int32_t RtspSocketCork(int32_t fd, int32_t state);
-int32_t RtspSocketNonblock(int32_t sockfd);
-int32_t RtspUdpConnect(char *ip, uint32_t port);
-int32_t RtspTcpConnect(char *ip, uint32_t port);
-int32_t RtspTcpSendData(int32_t fd, char *buf, uint32_t size);
-int32_t RtspTcpReceiveData(int32_t fd, char *buf, uint32_t size);
-void RtspCloseScokfd(int32_t sockfd);
-int32_t RtspRecvUdpRtpData(int32_t fd, char *buf, uint32_t size);
-int32_t RtspCreateUdpServer(char *ip, uint32_t port);
-int32_t RtspSendUdpRtpData(int32_t fd, char *buf, uint32_t size, char *ip, uint32_t port);
+int32_t SocketCork(int32_t fd, int32_t state);
+int32_t SocketNonblock(int32_t sockfd);
+int32_t UdpConnect(char *ip, uint32_t port);
+int32_t TcpConnect(char *ip, uint32_t port);
+int32_t TcpSendData(int32_t fd, char *buf, uint32_t size);
+int32_t TcpReceiveData(int32_t fd, char *buf, uint32_t size);
+void    CloseScokfd(int32_t sockfd);
+int32_t UdpReceiveData(int32_t fd, char *buf, uint32_t size);
+int32_t CreateUdpServer(char *ip, uint32_t port);
+int32_t UdpSendData(int32_t fd, char *buf, uint32_t size, char *ip, uint32_t port);
 
 #endif
