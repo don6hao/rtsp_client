@@ -111,7 +111,7 @@ int32_t RtspDescribeCommand(RtspSession *sess)
         printf("DESCRIBE: response status %i\n", status);
         return False;
     }
-#if 0
+#if 1
     size = GetSDPLength(buf, num);
     num = TcpReceiveData(sock, buf, size);
     if (num <= 0) {

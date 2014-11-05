@@ -20,7 +20,7 @@ $(TARGET):$(OBJS)
 	
 all:$(OBJS)
 $(OBJS):$(OBJ)/%.o:$(SRC)/%.c
-	$(CC) -I$(INC) -c $< -o $@
+	$(CC) $(CC_FLAG) -I$(INC) -c $< -o $@
 
 .PRONY:clean
 clean:

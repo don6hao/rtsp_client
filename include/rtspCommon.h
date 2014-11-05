@@ -4,6 +4,9 @@
 #include "rtspType.h"
 #include "rtsp.h"
 
+#define CLIENT_PORT_FLAG 0x0A
+#define SERVER_PORT_FLAG 0x0B
+
 int32_t ParseTimeout(char *buf, uint32_t size, RtspSession *sess);
 int32_t ParseUdpPort(char *buf, uint32_t size, RtspSession *sess);
 int32_t ParseInterleaved(char *buf, uint32_t num, RtspSession *sess);

@@ -38,71 +38,83 @@ int32_t RTSPOptionIsSupported(char const* commandName, char const* optionsRespon
   return False;
 }
 
-
-
-int32_t ParseUdpPort(char *buf, uint32_t size, RtspSession *sess)
+static void GetClientPort(char *buf, uint32_t size, RtspSession *sess)
 {
-    /* Session ID */
     char *p = strstr(buf, SETUP_CPORT);
     if (!p) {
         printf("SETUP: %s not found\n", SETUP_CPORT);
-        return False;
+        return;
     }
-    p = strchr((const char *)p, '=');
-    if (NULL == p){
-        printf("SETUP: = not found\n");
-        return False;
-    }
-    char *sep = strchr((const char *)p, '-');
-    if (NULL == sep){
-        printf("SETUP: - not found\n");
-        return False;
-    }
+    p += strlen(SETUP_CPORT);
+
+    char *ptr = p;
+    do{
+        if (*ptr == '-'){
+            break;
+        }
+        ptr++;
+    }while(1);
+
     char tmp[8] = {0x00};
-    strncpy(tmp, p+1, sep-p-1);
+    strncpy(tmp, p, ptr-p);
     sess->transport.udp.cport_from = atol(tmp);
     memset(tmp, 0x00, sizeof(tmp));
+    ptr++;
 
-
-    p = strchr((const char *)sep, ';');
-    if (NULL == p){
-        printf("SETUP: = not found\n");
-        return False;
-    }
-    strncpy(tmp, sep+1, p-sep-1);
+    p = ptr;
+    do{
+        if (*ptr == ';' || *ptr == '\r'){
+            break;
+        }
+        ptr++;
+    }while(1);
+    strncpy(tmp, p, ptr-p);
     sess->transport.udp.cport_to = atol(tmp);
     memset(tmp, 0x00, sizeof(tmp));
 
+    return;
+}
 
-    p = strstr(buf, SETUP_SPORT);
+static void GetServerPort(char *buf, uint32_t size, RtspSession *sess)
+{
+    char tmp[8] = {0x00};
+    memset(tmp, 0x00, sizeof(tmp));
+    char *p = strstr(buf, SETUP_SPORT);
     if (!p) {
         printf("SETUP: %s not found\n", SETUP_SPORT);
-        return False;
+        return;
     }
-    p = strchr((const char *)p, '=');
-    if (NULL == p){
-        printf("SETUP: = not found\n");
-        return False;
-    }
-    sep = strchr((const char *)p, '-');
-    if (NULL == sep){
-        printf("SETUP: - not found\n");
-        return False;
-    }
-    strncpy(tmp, p+1, sep-p-1);
+    p += strlen(SETUP_SPORT);
+    char *ptr = p;
+    do{
+        if (*ptr == '-'){
+            break;
+        }
+        ptr++;
+    }while(1);
+    strncpy(tmp, p, ptr-p);
     sess->transport.udp.sport_from = atol(tmp);
     memset(tmp, 0x00, sizeof(tmp));
+    ptr++;
 
-    p = strchr((const char *)sep, ';');
-    if (NULL == p){
-        p = strstr((const char *)sep, "\r\n");
-        if (NULL == p){
-            printf("SETUP: %s not found\n", "\r\n");
-            return False;
+    p=ptr;
+    do{
+        if (*ptr == ';' || *ptr == '\r'){
+            break;
         }
-    }
-    strncpy(tmp, sep+1, p-sep-1);
+        ptr++;
+    }while(1);
+    strncpy(tmp, p, ptr-p);
     sess->transport.udp.sport_to = atol(tmp);
+
+    return;
+}
+
+int32_t ParseUdpPort(char *buf, uint32_t size, RtspSession *sess)
+{
+    GetClientPort(buf, size, sess);
+    GetServerPort(buf, size, sess);
+
 #ifdef RTSP_DEBUG
     printf("client port from %d to %d\n", \
             sess->transport.udp.cport_from, \
@@ -172,31 +184,30 @@ int32_t ParseInterleaved(char *buf, uint32_t num, RtspSession *sess)
         printf("SETUP: %s not found\n", TCP_INTERLEAVED);
         return False;
     }
-    p = strchr((const char *)p, '=');
-    if (NULL == p){
-        printf("SETUP: = not found\n");
-        return False;
-    }
-    char *sep = strchr((const char *)p, '-');
-    if (NULL == sep){
-        printf("SETUP: - not found\n");
-        return False;
-    }
+
+    p += strlen(TCP_INTERLEAVED);
+    char *ptr = p;
+    do{
+        if (*ptr == '-'){
+            break;
+        }
+        ptr++;
+    }while(1);
+
     char tmp[8] = {0x00};
-    strncpy(tmp, p+1, sep-p-1);
+    strncpy(tmp, p, ptr-p);
     sess->transport.tcp.start = atol(tmp);
     memset(tmp, 0x00, sizeof(tmp));
+    ptr++;
 
-    p = strchr((const char *)sep, ';');
-    if (NULL == p){
-        p = strstr((const char *)sep, "\r\n");
-        if (NULL == p){
-            printf("SETUP: %s not found\n", "\r\n");
-            return False;
+    p = ptr;
+    do{
+        if (*ptr == ';' || *ptr == '\r'){
+            break;
         }
-    }
-
-    strncpy(tmp, sep+1, p-sep-1);
+        ptr++;
+    }while(1);
+    strncpy(tmp, p, ptr-p);
     sess->transport.udp.cport_to = atol(tmp);
     memset(tmp, 0x00, sizeof(tmp));
 
