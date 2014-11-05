@@ -11,12 +11,12 @@
 #define RTSP_PORT         554
 #define RTSP_CLIENT_PORT  9500
 #define RTSP_RESPONSE     "RTSP/1.0 "
-#define CMD_OPTIONS       "OPTIONS rtsp://%s:%d RTSP/1.0\r\nCSeq: %i\r\n\r\n"
-#define CMD_DESCRIBE      "DESCRIBE %s RTSP/1.0\r\nCSeq: %i\r\nAccept: application/sdp\r\n\r\n"
-#define CMD_TCP_SETUP         "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nTransport: RTP/AVP/TCP;unicast;interleaved=0-1\r\n\r\n"
-#define CMD_UDP_SETUP         "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nTransport: RTP/AVP;unicast;client_port=%d-%d\r\n\r\n"
-#define CMD_PLAY          "PLAY %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\nRange: npt=0.00-\r\n\r\n"
-#define CMD_GET_PARAMETER          "GET_PARAMETER %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\n\r\n"
+#define CMD_OPTIONS       "OPTIONS rtsp://%s:%d RTSP/1.0\r\nCSeq: %i\r\nUser-Agent: don6hao\r\n\r\n"
+#define CMD_DESCRIBE      "DESCRIBE %s RTSP/1.0\r\nCSeq: %i\r\nUser-Agent: don6hao\r\nAccept: application/sdp\r\n\r\n"
+#define CMD_TCP_SETUP     "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nUser-Agent: don6hao\r\nTransport: RTP/AVP/TCP;unicast;interleaved=0-1\r\n\r\n"
+#define CMD_UDP_SETUP     "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nUser-Agent: don6hao\r\nTransport: RTP/AVP;unicast;client_port=%d-%d\r\n\r\n"
+#define CMD_PLAY          "PLAY %s RTSP/1.0\r\nCSeq: %i\r\nUser-Agent: don6hao\r\nSession: %s\r\nRange: npt=0.00-\r\n\r\n"
+#define CMD_GET_PARAMETER "GET_PARAMETER %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\n\r\n"
 #define CMD_TEARDOWN      "TEARDOWN %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\n\r\n"
 #define UDP_TRANSPORT     "RTP/AVP"
 #define TCP_TRANSPORT     "RTP/AVP/TCP"

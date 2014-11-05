@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <sys/time.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include "rtspType.h"
 #include "rtspClient.h"
@@ -26,6 +27,13 @@ static void help(int status)
 	exit(status);
 }
 
+static int32_t quitflag = 0x00;
+static void signal_handler(int signo)
+{
+    printf("Have caught signal N.O. %d\n", signo);
+    quitflag = 0x01;
+    return;
+}
 
 int32_t main(int argc, char **argv)
 {
@@ -51,6 +59,10 @@ int32_t main(int argc, char **argv)
         }
     }
 
+    signal(SIGINT, signal_handler);
+    signal(SIGHUP, signal_handler);
+    signal(SIGQUIT, signal_handler);
+
     if (NULL == url){
         fprintf(stderr, "Error : Url Address Equal Null.\n");
         return 0x00;
@@ -62,21 +74,24 @@ int32_t main(int argc, char **argv)
         return 0x00;
     }
 
-    pthread_t rtspId = RtspCreateThread(RtspEventLoop, (void *)cses);
-    if (rtspId < 0x00){
+    pthread_t rtspid = RtspCreateThread(RtspEventLoop, (void *)cses);
+    if (rtspid < 0x00){
         fprintf(stderr, "RtspCreateThread Error!\n");
         return 0x00;
     }
 
 
     do{
-        pthread_join(rtspId, NULL);
-        break;
-    }while(0);
+        if (0x01 == quitflag){
+            SetRtspClientSessionQuit(cses);
+            TrykillThread(rtspid);
+            break;
+        }
+        sleep(1);
+    }while(1);
 
     printf("RTSP Event Loop stopped, waiting 5 seconds...\n");
     DeleteRtspClientSession(cses);
     return 0x00;
 }
-
 

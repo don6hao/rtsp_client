@@ -141,7 +141,7 @@ static int32_t RtspSendSetupCommand(RtspSession *sess)
     if (RTP_AVP_TCP == sess->trans){
         num = snprintf(buf, size, CMD_TCP_SETUP, url, sess->cseq);
     }else if (RTP_AVP_UDP == sess->trans){
-        num = snprintf(buf, size, CMD_UDP_SETUP, url, sess->cseq, 10000, 10001);
+        num = snprintf(buf, size, CMD_UDP_SETUP, url, sess->cseq, 30000, 30001);
     }
     if (num < 0x00){
         fprintf(stderr, "%s : snprintf error!\n", __func__);
@@ -394,9 +394,9 @@ int32_t RtspStatusMachine(RtspSession *sess)
                 sess->status = RTSP_PLAY;
                 break;
             case RTSP_PLAY:
-                RtspGetParameterCommand(sess);
-                gettimeofday(&playnow, NULL);
-                sess->status = RTSP_GET_PARAMETER;
+                /*RtspGetParameterCommand(sess);*/
+                /*gettimeofday(&playnow, NULL);*/
+                /*sess->status = RTSP_GET_PARAMETER;*/
                 break;
             case RTSP_GET_PARAMETER:
                 gettimeofday(&now, NULL);

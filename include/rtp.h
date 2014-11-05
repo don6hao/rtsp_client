@@ -2,6 +2,9 @@
 #define _RTP_H_
 
 #include <time.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 #include "rtspType.h"
 
 #define FRAME_MAX_SIZE              (1920*1080)
@@ -128,6 +131,8 @@ typedef struct Rtp_Session{
     uint32_t seq;
     uint32_t ssrc;
     struct timeval rtcptv;
+    struct sockaddr_in addrfrom;
+    struct sockaddr_in addrto;
     RtpStats stats;
 }RtpSession;
 

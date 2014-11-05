@@ -76,44 +76,33 @@ int32_t CreateUdpServer(char *ip, uint32_t port)
 }
 
 /* Connect to a UDP socket server and returns the file descriptor */
-int32_t UdpConnect(char *ip, uint32_t port)
+int32_t UdpConnect(struct sockaddr_in *addr, char *ip, uint32_t port, uint32_t sockfd)
 {
     int32_t res;
-    int32_t sock_fd;
-    struct sockaddr_in *remote;
+    struct sockaddr_in *remote = addr;
 
-    sock_fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    if (sock_fd <= 0) {
-	    fprintf(stderr, "Error: could not create socket\n");
-	    return -1;
-    }
-
-    remote = (struct sockaddr_in *) malloc(sizeof(struct sockaddr_in));
     remote->sin_family = AF_INET;
     res = inet_pton(AF_INET, (const char*)ip, (void *) (&(remote->sin_addr.s_addr)));
-
     if (res < 0) {
 	    fprintf(stderr, "Error: Can't set remote->sin_addr.s_addr\n");
-	    free(remote);
 	    return -1;
     }
     else if (res == 0) {
 	    fprintf(stderr, "Error: Invalid address '%s'\n", ip);
-	    free(remote);
 	    return -1;
     }
 
     remote->sin_port = htons(port);
-    if (connect(sock_fd,
-                (struct sockaddr *) remote, sizeof(struct sockaddr)) == -1) {
-        close(sock_fd);
+#if 0
+    if (connect(sockfd,
+                (struct sockaddr *)remote, sizeof(struct sockaddr)) == -1) {
+        close(sockfd);
         fprintf(stderr, "Error connecting to %s:%d\n", ip, port);
-        free(remote);
         return -1;
     }
+#endif
 
-    free(remote);
-    return sock_fd;
+    return True;
 }
 
 int32_t SocketNonblock(int32_t sockfd)
@@ -154,27 +143,20 @@ void CloseScokfd(int32_t sockfd)
 }
 
 
-int32_t UdpReceiveData(int32_t fd, char *buf, uint32_t size)
+int32_t UdpReceiveData(int32_t fd, char *buf, uint32_t size, struct sockaddr_in *addr)
 {
     int32_t num = 0x00;
-    struct sockaddr_in addr;
     socklen_t addr_len = sizeof(struct sockaddr_in);
-    memset(buf,0x00, size);
-    num = recvfrom(fd, buf, size, 0, (struct sockaddr *)&addr, &addr_len);
+    num = recvfrom(fd, buf, size, 0, (struct sockaddr *)addr, &addr_len);
 
     return num;
 }
 
-int32_t UdpSendData(int32_t fd, char *buf, uint32_t size, char *ip, uint32_t port)
+int32_t UdpSendData(int32_t fd, char *buf, uint32_t size, struct sockaddr_in *remote)
 {
-    struct sockaddr_in remote;
-    remote.sin_family = AF_INET;
-    inet_pton(AF_INET, (const char*)ip, (void *) (&(remote.sin_addr.s_addr)));
-    remote.sin_port = htons(port);
-    connect(fd, (struct sockaddr *) &remote, sizeof(struct sockaddr));
     int32_t num = 0x00;
     socklen_t addr_len = sizeof(struct sockaddr_in);
-    num = sendto(fd, buf, size, 0, (struct sockaddr *)&remote, addr_len);
+    num = sendto(fd, buf, size, 0, (struct sockaddr *)remote, addr_len);
 
     return num;
 }

@@ -52,6 +52,7 @@ typedef struct RTSP_SDP{
 typedef struct RTSP_CLIENT_SESSION{
     RtspSession sess;
     RtspSdp     sdp;
+    int32_t     quit;
 }RtspClientSession;
 
 
@@ -60,5 +61,7 @@ void* RtspEventLoop(void* args);
 RtspClientSession* InitRtspClientSession();
 void DeleteRtspClientSession(RtspClientSession *csess);
 int32_t ParseRtspUrl(char *url, RtspSession *sess);
+int32_t isRtspClientSessionQuit(RtspClientSession *rcsess);
+void SetRtspClientSessionQuit(RtspClientSession *rcsess);
 
 #endif

@@ -141,11 +141,14 @@ void* RtspHandleUdpConnect(void* args)
 
     int32_t rtpfd = CreateUdpServer(sess->ip, sess->transport.udp.cport_from);
     int32_t rtcpfd = CreateUdpServer(sess->ip, sess->transport.udp.cport_to);
+    UdpConnect(&sess->rtpsess.addrfrom, sess->ip, sess->transport.udp.sport_from, rtpfd);
+    UdpConnect(&sess->rtpsess.addrto, sess->ip, sess->transport.udp.sport_to, rtcpfd);
     int32_t num = 0x00, size = 4096;
     char    buf[size], framebuf[1920*1080];
     uint32_t length, framelen = 0x00;
 #ifdef RTSP_DEBUG
-    printf("-------  %d, %d ---------\n", sess->transport.udp.sport_from, sess->transport.udp.sport_to);
+    printf("------- server port: %d, %d ---------\n", \
+            sess->transport.udp.sport_from, sess->transport.udp.sport_to);
     printf("rtp fd : %d, %d\n", rtpfd, rtcpfd);
     printf("ip, port : %s, %d\n", sess->ip, sess->transport.udp.cport_from);
 #endif
@@ -169,13 +172,14 @@ void* RtspHandleUdpConnect(void* args)
         FD_SET(rtpfd, &readfd);
         FD_SET(rtcpfd, &readfd);
         FD_SET(rtcpfd, &writefd);
+        FD_SET(rtpfd, &writefd);
         int32_t ret = select(rtcpfd+1, &readfd, &writefd, NULL, &timeout);
         if (-1 == ret){
             fprintf(stderr, "select error!\n");
             break;
         }
         if (FD_ISSET(rtpfd, &readfd)){
-            num = UdpReceiveData(rtpfd, buf, size);
+            num = UdpReceiveData(rtpfd, buf, size, &sess->rtpsess.addrfrom);
             if (num < 0x00){
                 fprintf(stderr, "recv error or connection closed!\n");
                 break;
@@ -194,7 +198,7 @@ void* RtspHandleUdpConnect(void* args)
             }
         }
         if (FD_ISSET(rtcpfd, &readfd)){
-            num = UdpReceiveData(rtcpfd, buf, size);
+            num = UdpReceiveData(rtcpfd, buf, size, &sess->rtpsess.addrto);
             if (num < 0x00){
                 fprintf(stderr, "recv error or connection closed!\n");
                 break;
@@ -215,7 +219,7 @@ void* RtspHandleUdpConnect(void* args)
                 sess->rtpsess.rtcptv = now;
                 char tmp[512];
                 uint32_t len = RtcpReceiveReport(tmp, sizeof(tmp), &sess->rtpsess);
-                UdpSendData(rtcpfd, tmp, len, sess->ip, sess->transport.udp.sport_to);
+                UdpSendData(rtcpfd, tmp, len, &sess->rtpsess.addrto);
             }
         }
     }while(1);
@@ -244,6 +248,9 @@ void* RtspEventLoop(void* args)
 #endif
     sess->sockfd = fd;
     do{
+        if (0x01 == isRtspClientSessionQuit(csess)){
+            sess->status = RTSP_TEARDOWN;
+        }
         if ((False == RtspStatusMachine(sess)) || \
                 (RTSP_QUIT == sess->status))
             break;
@@ -266,6 +273,16 @@ void* RtspEventLoop(void* args)
     return NULL;
 }
 
+int32_t isRtspClientSessionQuit(RtspClientSession *rcsess)
+{
+    return rcsess->quit;
+}
+
+void SetRtspClientSessionQuit(RtspClientSession *rcsess)
+{
+    rcsess->quit = 0x01;
+}
+
 RtspClientSession* InitRtspClientSession()
 {
     RtspClientSession *cses = (RtspClientSession *)calloc(1, sizeof(RtspClientSession));
@@ -273,6 +290,7 @@ RtspClientSession* InitRtspClientSession()
     if (NULL == cses)
         return NULL;
 
+    cses->quit = 0x00;
     RtspSession *sess = &cses->sess;
     sess->trans  = RTP_AVP_UDP;
     sess->status = RTSP_START;
