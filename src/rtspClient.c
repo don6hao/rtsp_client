@@ -116,7 +116,6 @@ void* RtspHandleTcpConnect(void* args)
                 if (True == CheckRtpHeaderMarker(buf, length))
                 {
 #ifdef SAVE_FILE_DEBUG
-                    printf("frame length :%d\n", framelen);
                     fwrite(framebuf, framelen, 1, fp);
                     fflush(fp);
 #endif
@@ -177,6 +176,16 @@ void* RtspHandleUdpConnect(void* args)
         if (-1 == ret){
             fprintf(stderr, "select error!\n");
             break;
+        }
+        if (1){
+            static int times = 0x00;
+            /*char tmp[] = {0xce, 0xfa, 0xed, 0xfe};*/
+            char tmp[] = {0xce, 0xfa};
+            if (times < 2){
+                UdpSendData(rtpfd, tmp, sizeof(tmp), &sess->rtpsess.addrfrom);
+                times++;
+            }
+
         }
         if (FD_ISSET(rtpfd, &readfd)){
             num = UdpReceiveData(rtpfd, buf, size, &sess->rtpsess.addrfrom);

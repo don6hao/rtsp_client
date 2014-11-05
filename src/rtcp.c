@@ -43,7 +43,7 @@ static void ParseSenderReport(char *buf, uint32_t len, char *srh, RtpStats *stat
     stats->rtp_identifier = rsr->ssrc;
 
 #ifdef RTSP_DEBUG
-    if (1) {
+    if (0) {
         printf("Timestamp MSW   : 0x%x (%u)\n", sr->ntp_timestamp_msw, sr->ntp_timestamp_msw);
         printf("Timestamp LSW   : 0x%x (%u)\n", sr->ntp_timestamp_lsw, sr->ntp_timestamp_lsw);
         printf("RTP timestamp  : 0x%x (%u)\n", sr->rtp_timestamp, sr->rtp_timestamp);
@@ -94,7 +94,7 @@ uint32_t ParseRtcp(char *buf, uint32_t len, RtpStats *stats)
         rtcph->rc        = buf[i] & 0x1F;
 #endif
 #ifdef RTSP_DEBUG
-        if (1){
+        if (0){
             printf("RTCP Version  : %i\n", rtcph->version);
             printf("     Padding  : %i\n", rtcph->padbit);
             printf("     RC       : %i\n", rtcph->rc);

@@ -93,6 +93,7 @@ unsigned int UnpackRtpNAL(char *buf, uint32_t size, char *framebuf, uint32_t fra
      */
     NALU_HEADER nalu = *(NALU_HEADER *)(&buf[0]);
     int32_t nal_type = nalu.TYPE;//(buf[0] & 0x1F);
+    int32_t nal_forbidden_zero = CHECK_BIT(buf[0], 7);
 #if 0
     int32_t nal_forbidden_zero = nalu.F;//CHECK_BIT(buf[0], 7);
     int32_t nal_nri  = nalu.NRI;//(buf[0] & 0x60) >> 5;
@@ -101,17 +102,20 @@ unsigned int UnpackRtpNAL(char *buf, uint32_t size, char *framebuf, uint32_t fra
     printf("         NRI           : %i\n", nal_nri);
     printf("         Type          : %i\n", nal_type);
 #endif
-
-    /* Single NAL unit packet */
-    if (nal_type >= NAL_TYPE_SINGLE_NAL_MIN &&
-        nal_type <= NAL_TYPE_SINGLE_NAL_MAX) {
-        return UnpackRtpSingle_NAL(buf, size, framebuf);
-    }else if (nal_type == NAL_TYPE_STAP_A) {
-        return UnpackRtpSTAP_A_NAL(buf, size, framebuf);
-    }else if (nal_type == NAL_TYPE_FU_A) {
-        return UnpackRtpFU_A_NAL(buf, size, framebuf);
+    if (0x00 == nal_forbidden_zero)
+    {
+        /* Single NAL unit packet */
+        if (nal_type >= NAL_TYPE_SINGLE_NAL_MIN &&
+            nal_type <= NAL_TYPE_SINGLE_NAL_MAX) {
+            return UnpackRtpSingle_NAL(buf, size, framebuf);
+        }else if (nal_type == NAL_TYPE_STAP_A) {
+            return UnpackRtpSTAP_A_NAL(buf, size, framebuf);
+        }else if (nal_type == NAL_TYPE_FU_A) {
+            return UnpackRtpFU_A_NAL(buf, size, framebuf);
+        }
     }
-    return 0x00;
+    memcpy((void *)(framebuf), (const void*)(buf), size);
+    return size;
 }
 
 static uint32_t UnpackRtpSingle_NAL(char *buf, uint32_t size, char* framebuf)
