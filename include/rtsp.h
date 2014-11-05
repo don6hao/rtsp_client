@@ -7,15 +7,15 @@
 
 typedef enum{
     RTSP_START,
-    RTSP_OPTIONS,
-    RTSP_DESCRIBE,
-    RTSP_SETUP,
-    RTSP_PLAY,
-    RTSP_PAUSE,
-    RTSP_GET_PARAMETER,
-    RTSP_SET_PARAMETER,
-    RTSP_REDIRECT,
-    RTSP_TEARDOWN,
+    RTSP_OPTIONS = 1,
+    RTSP_DESCRIBE = 2,
+    RTSP_SETUP = 4,
+    RTSP_PLAY = 8,
+    RTSP_PAUSE = 16,
+    RTSP_GET_PARAMETER = 32,
+    RTSP_SET_PARAMETER = 64,
+    RTSP_REDIRECT = 128,
+    RTSP_TEARDOWN = 254,
     RTSP_QUIT
 }EN_RTSP_STATUS;
 
@@ -58,6 +58,7 @@ typedef struct RTSPSESSION{
     int32_t sockfd;
     int32_t cseq;
     uint32_t timeout;
+    int32_t  cmdstats;
 
     uint32_t packetization; /* Packetization mode from SDP data */
     union{
@@ -75,7 +76,7 @@ typedef struct RTSPSESSION{
     char  password[128];
     char  ip[16];
     char  trans;      /* RTP/AVP/UDP or RTP/AVP/TCP */
-    char  status;
+    unsigned char  status;
     char  reserve[2];
 }RtspSession;
 

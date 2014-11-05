@@ -6,37 +6,74 @@
 
 #include "rtspCommon.h"
 
-// Used to implement "RTSPOptionIsSupported()":
-static int32_t isSeparator(char c) { return c == ' ' || c == ',' || c == ';' || c == ':'; }
+static CmdTbl gcmdtbl[]={{"OPTIONS", 0},
+                        {"DESCRIBE", 2},
+                        {"SETUP", 4},
+                        {"PLAY", 8},
+                        {"PAUSE", 16},
+                        {"GET_PARAMETER", 32},
+                        {"SET_PARAMETER", 64},
+                        {"REDIRECT", 128},
+                        {"TEARDOWN", 256},
+                        {"", -1}};
 
-int32_t RTSPOptionIsSupported(char const* commandName, char const* optionsResponseString) {
-  do {
-    if (commandName == NULL || optionsResponseString == NULL) break;
+static uint32_t GetCmdTblKey(char *cmd)
+{
+    int32_t size = sizeof(gcmdtbl)/sizeof(CmdTbl);
+    uint32_t i = 0x00;
 
-    unsigned const commandNameLen = strlen(commandName);
-    if (commandNameLen == 0) break;
-
-    // "optionsResponseString" is assumed to be a list of command names, separated by " " and/or ",", ";", or ":"
-    // Scan through these, looking for "commandName".
-    while (1) {
-      // Skip over separators:
-      while (*optionsResponseString != '\0' && isSeparator(*optionsResponseString)) ++optionsResponseString;
-      if (*optionsResponseString == '\0') break;
-
-      // At this point, "optionsResponseString" begins with a command name (with perhaps a separator afterwads).
-      if (strncmp(commandName, optionsResponseString, commandNameLen) == 0) {
-	// We have at least a partial match here.
-	optionsResponseString += commandNameLen;
-	if (*optionsResponseString == '\0' || isSeparator(*optionsResponseString)) return True;
-      }
-
-      // No match.  Skip over the rest of the command name:
-      while (*optionsResponseString != '\0' && !isSeparator(*optionsResponseString)) ++optionsResponseString;
+    for (; i < size; i++){
+        if (strncmp(gcmdtbl[i].cmd, cmd, strlen(gcmdtbl[i].cmd)) == 0){
+            return gcmdtbl[i].key;
+        }
     }
-  } while (0);
-
-  return False;
+    return 0x00;
 }
+
+int32_t RtspCommandIsSupported(int32_t key, RtspSession *sess)
+{
+#ifdef RTSP_DEBUG
+    printf("cmd stats : %d, key : %d\n", sess->cmdstats, key);
+#endif
+    if ((0x01 == (sess->cmdstats&0x01)) || (0x01 == (key&0x01)))
+        return False;
+
+    if ((key & sess->cmdstats) > 0x01)
+        return True;
+    return False;
+}
+
+void ParseOptionsPublic(char *buf, uint32_t size, RtspSession *sess)
+{
+    char *p = strstr(buf, OPTIONS_PUBLIC);
+    if (NULL == p) {
+        printf("SETUP: %s not found\n", SETUP_CPORT);
+        return;
+    }
+    p += strlen(OPTIONS_PUBLIC);
+    char *ptr = p;
+    char tmp[32] = {0x00};
+    do{
+        memset(tmp, 0x00, sizeof(tmp));
+        if (*ptr == ','){
+            strncpy(tmp, p, ptr-p);
+            tmp[ptr-p]='\0';
+            p = ptr+1;
+            sess->cmdstats += GetCmdTblKey(tmp);
+        }else if (*ptr == '\r'){
+            strncpy(tmp, p, ptr-p);
+            tmp[ptr-p]='\0';
+            break;
+        }
+        ptr++;
+    }while(1);
+    sess->cmdstats += GetCmdTblKey(tmp);
+#ifdef RTSP_DEBUG
+    printf("cmd stats : %d\n", sess->cmdstats);
+#endif
+    return;
+}
+
 
 static void GetClientPort(char *buf, uint32_t size, RtspSession *sess)
 {

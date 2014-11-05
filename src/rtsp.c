@@ -59,6 +59,9 @@ int32_t RtspOptionsCommand(RtspSession *sess)
 #endif
     if (False == RtspCheckResponseStatus(buf))
         return False;
+
+
+    ParseOptionsPublic(buf, num, sess);
     RtspIncreaseCseq(sess);
     return True;
 }
@@ -394,11 +397,13 @@ int32_t RtspStatusMachine(RtspSession *sess)
                 sess->status = RTSP_PLAY;
                 break;
             case RTSP_PLAY:
-                /*RtspGetParameterCommand(sess);*/
-                /*gettimeofday(&playnow, NULL);*/
-                /*sess->status = RTSP_GET_PARAMETER;*/
+                RtspGetParameterCommand(sess);
+                gettimeofday(&playnow, NULL);
+                sess->status = RTSP_GET_PARAMETER;
                 break;
             case RTSP_GET_PARAMETER:
+                if (False == RtspCommandIsSupported(RTSP_GET_PARAMETER, sess))
+                    break;
                 gettimeofday(&now, NULL);
                 if ((now.tv_sec - playnow.tv_sec) > sess->timeout-5){
                     RtspGetParameterCommand(sess);
