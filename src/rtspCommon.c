@@ -226,26 +226,6 @@ void RtspIncreaseCseq(RtspSession *sess)
     return;
 }
 
-int32_t RtspResponseStatus(char *response)
-{
-    int32_t offset = sizeof(RTSP_RESPONSE) - 1;
-    char buf[8], *sep = NULL;
-
-    if (strncmp((const char*)response, (const char*)RTSP_RESPONSE, offset) != 0) {
-        return -1;
-    }
-
-    sep = strchr((const char *)response+offset, ' ');
-    if (!sep) {
-        return -1;
-    }
-
-    memset(buf, '\0', sizeof(buf));
-    strncpy((char *)buf, (const char *)(response+offset), sep-response-offset);
-
-    return atoi(buf);
-}
-
 void GetSdpVideoAcontrol(char *buf, uint32_t size, RtspSession *sess)
 {
     char *ptr = (char *)memmem((const void*)buf, size,
@@ -315,26 +295,4 @@ int32_t ParseSdpProto(char *buf, uint32_t size, RtspSession *sess)
     return True;
 }
 
-uint32_t GetSDPLength(char *buf, uint32_t size)
-{
-    char *p = strstr(buf, "Content-Length: ");
-    if (!p) {
-        printf("Describe: Error, Transport header not found\n");
-        return 0x00;
-    }
-
-    char *sep = strchr(p, ' ');
-    if (NULL == sep)
-        return 0x00;
-
-    p = strstr(sep, "\r\n");
-    if (!p) {
-        printf("Describe : Content-Length: not found\n");
-        return 0x00;
-    }
-
-    char tmp[8] = {0x00};
-    strncpy(tmp, sep+1, p-sep-1);
-    return  atol(tmp);
-}
 

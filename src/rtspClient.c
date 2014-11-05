@@ -278,6 +278,7 @@ RtspClientSession* InitRtspClientSession()
     sess->status = RTSP_START;
     sess->transport.tcp.start = 0x00;
     sess->transport.tcp.end = 0x01;
+    memset((void *)&sess->buffctrl, 0x00 ,sizeof(sess->buffctrl));
     return cses;
 }
 

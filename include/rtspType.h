@@ -4,6 +4,38 @@
 #define True  0x01
 #define False 0x00
 
+#define RECV_BUFF_DEFAULT_LEN  (2048)
+#define SEPERATOR         "\r\n\r\n"
+#define VERSION           "0.1"
+#define PROTOCOL_PREFIX   "rtsp://"
+#define RTSP_PORT         554
+#define RTSP_CLIENT_PORT  9500
+#define RTSP_RESPONSE     "RTSP/1.0 "
+#define CMD_OPTIONS       "OPTIONS rtsp://%s:%d RTSP/1.0\r\nCSeq: %i\r\n\r\n"
+#define CMD_DESCRIBE      "DESCRIBE %s RTSP/1.0\r\nCSeq: %i\r\nAccept: application/sdp\r\n\r\n"
+#define CMD_TCP_SETUP         "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nTransport: RTP/AVP/TCP;unicast;interleaved=0-1\r\n\r\n"
+#define CMD_UDP_SETUP         "SETUP %s RTSP/1.0\r\nCSeq: %i\r\nTransport: RTP/AVP;unicast;client_port=%d-%d\r\n\r\n"
+#define CMD_PLAY          "PLAY %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\nRange: npt=0.00-\r\n\r\n"
+#define CMD_GET_PARAMETER          "GET_PARAMETER %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\n\r\n"
+#define CMD_TEARDOWN      "TEARDOWN %s RTSP/1.0\r\nCSeq: %i\r\nSession: %s\r\n\r\n"
+#define UDP_TRANSPORT     "RTP/AVP"
+#define TCP_TRANSPORT     "RTP/AVP/TCP"
+#define TCP_INTERLEAVED   "interleaved="
+#define TIME_OUT          "timeout="
+#define OPTIONS_PUBLIC    "Public: "
+
+#define SETUP_SESSION      "Session: "
+#define SETUP_CPORT        "client_port="
+#define SETUP_SPORT        "server_port="
+
+#define SDP_M_VIDEO        "m=video "
+#define SDP_M_AUDIO        "m=audio "
+#define SDP_A_RTPMAP       "a=rtpmap:"
+#define SDP_A_FMTP         "a=fmtp:"
+#define SDP_A_CONTROL      "a=control:"
+#define CONTENT_LENGTH    "Content-Length: "
+#define CONTENT_length    "Content-length: "
+
 typedef signed char int8_t;
 typedef unsigned char uint8_t;
 
@@ -13,6 +45,11 @@ typedef unsigned int uint32_t;
 typedef long long int64_t;
 typedef unsigned long long uint64_t;
 
+typedef struct buffer_control{
+    int32_t     len;
+    int32_t     offset;
+    char        buffer[RECV_BUFF_DEFAULT_LEN];
+}BufferControl;
 
 struct list_head {
     struct list_head *next, *prev;
