@@ -238,6 +238,7 @@ void* RtspHandleUdpConnect(void* args)
 #endif
     close(rtpfd);
     close(rtcpfd);
+    sess->status = RTSP_TEARDOWN;
     printf("RtspHandleUdpConnect Quit!\n");
     return NULL;
 }
@@ -257,14 +258,14 @@ void* RtspEventLoop(void* args)
 #endif
     sess->sockfd = fd;
     do{
-        if (0x01 == isRtspClientSessionQuit(csess)){
+        if (True == isRtspClientSessionQuit(csess)){
             sess->status = RTSP_TEARDOWN;
         }
         if ((False == RtspStatusMachine(sess)) || \
                 (RTSP_QUIT == sess->status))
             break;
 
-        if (RTSP_PLAY == sess->status){
+        if (RTSP_KEEPALIVE == sess->status){
             if (0x00 == transid){
                 if (RTP_AVP_UDP == sess->trans){
                     transid = RtspCreateThread(RtspHandleUdpConnect, (void *)sess);
@@ -284,7 +285,9 @@ void* RtspEventLoop(void* args)
 
 int32_t isRtspClientSessionQuit(RtspClientSession *rcsess)
 {
-    return rcsess->quit;
+    if (0x01 == rcsess->quit)
+        return True;
+    return False;
 }
 
 void SetRtspClientSessionQuit(RtspClientSession *rcsess)
@@ -302,7 +305,7 @@ RtspClientSession* InitRtspClientSession()
     cses->quit = 0x00;
     RtspSession *sess = &cses->sess;
     sess->trans  = RTP_AVP_UDP;
-    sess->status = RTSP_START;
+    sess->status = RTSP_OPTIONS;
     sess->transport.tcp.start = 0x00;
     sess->transport.tcp.end = 0x01;
     memset((void *)&sess->buffctrl, 0x00 ,sizeof(sess->buffctrl));

@@ -15,7 +15,8 @@ typedef enum{
     RTSP_GET_PARAMETER = 32,
     RTSP_SET_PARAMETER = 64,
     RTSP_REDIRECT = 128,
-    RTSP_TEARDOWN = 254,
+    RTSP_TEARDOWN = 256,
+    RTSP_KEEPALIVE = 512,
     RTSP_QUIT
 }EN_RTSP_STATUS;
 
@@ -55,10 +56,11 @@ typedef struct AUDIO_MEDIA{
 
 typedef struct RTSPSESSION{
     uint32_t port;
-    int32_t sockfd;
-    int32_t cseq;
+    int32_t  sockfd;
+    int32_t  cseq;
     uint32_t timeout;
     int32_t  cmdstats;
+    uint32_t status;
 
     uint32_t packetization; /* Packetization mode from SDP data */
     union{
@@ -70,15 +72,20 @@ typedef struct RTSPSESSION{
     AudioMedia    amedia;
     VideoMedia    vmedia;
     BufferControl buffctrl;
+    struct timeval now;
     char  sessid[32];
     char  url[128];
     char  username[128];
     char  password[128];
     char  ip[16];
     char  trans;      /* RTP/AVP/UDP or RTP/AVP/TCP */
-    unsigned char  status;
     char  reserve[2];
 }RtspSession;
+
+typedef struct RTSP_COMMOND_HANDLE{
+    int32_t cmd;
+    int32_t (*handle)(RtspSession *);
+}RtspCmdHdl;
 
 int32_t RtspOptionsCommand(RtspSession *sess);
 int32_t RtspDescribeCommand(RtspSession *sess);
@@ -86,5 +93,7 @@ int32_t RtspSetupCommand(RtspSession *sess);
 int32_t RtspPlayCommand(RtspSession *sess);
 int32_t RtspTeardownCommand(RtspSession *sess);
 int32_t RtspStatusMachine(RtspSession *sess);
+int32_t RtspGetParameterCommand(RtspSession *sess);
+int32_t RtspKeepAliveCommand(RtspSession *sess);
 
 #endif

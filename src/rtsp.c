@@ -11,6 +11,7 @@
 #include "rtspResponse.h"
 #include "net.h"
 
+static int32_t RtspSendKeepAliveCommand(RtspSession *sess);
 static int32_t RtspSendOptionsCommand(RtspSession *sess)
 {
     int32_t size = sizeof(sess->buffctrl.buffer);
@@ -62,7 +63,7 @@ int32_t RtspOptionsCommand(RtspSession *sess)
 
 
     ParseOptionsPublic(buf, num, sess);
-    RtspIncreaseCseq(sess);
+    sess->status = RTSP_DESCRIBE;
     return True;
 }
 
@@ -116,7 +117,7 @@ int32_t RtspDescribeCommand(RtspSession *sess)
     if (False == RtspCheckResponseStatus(buf))
         return False;
     ParseSdpProto(buf, num, sess);
-    RtspIncreaseCseq(sess);
+    sess->status = RTSP_SETUP;
 
     return True;
 }
@@ -196,7 +197,7 @@ int32_t RtspSetupCommand(RtspSession *sess)
     }
     ParseSessionID(buf, num, sess);
     sess->packetization = 1;
-    RtspIncreaseCseq(sess);
+    sess->status = RTSP_PLAY;
     return True;
 }
 
@@ -250,8 +251,37 @@ int32_t RtspPlayCommand(RtspSession *sess)
 #endif
     if (False == RtspCheckResponseStatus(buf))
         return False;
+    ParseTimeout(buf, num, sess);
+    gettimeofday(&sess->now, NULL);
+    sess->status = RTSP_KEEPALIVE;
+    RtspSendKeepAliveCommand(sess);
+    return True;
+}
 
-    RtspIncreaseCseq(sess);
+static int32_t RtspSendKeepAliveCommand(RtspSession *sess)
+{
+    if (True == RtspCommandIsSupported(RTSP_GET_PARAMETER, sess)){
+        RtspGetParameterCommand(sess);
+    }else{
+        RtspOptionsCommand(sess);
+    }
+
+    return True;
+}
+
+int32_t RtspKeepAliveCommand(RtspSession *sess)
+{
+    struct timeval now;
+    gettimeofday(&now, NULL);
+
+    if (now.tv_sec - sess->now.tv_sec > sess->timeout-5){
+#ifdef RTSP_DEBUG
+    printf("+++++++++++++++++++  Keep alive: command  ++++++++++++++++++++++++++\n");
+#endif
+        RtspSendKeepAliveCommand(sess);
+        sess->now = now;
+    }
+
     return True;
 }
 
@@ -304,8 +334,6 @@ int32_t RtspGetParameterCommand(RtspSession *sess)
 #endif
     if (False == RtspCheckResponseStatus(buf))
         return False;
-
-    RtspIncreaseCseq(sess);
     return True;
 }
 
@@ -359,70 +387,33 @@ int32_t RtspTeardownCommand(RtspSession *sess)
 #endif
     if (False == RtspCheckResponseStatus(buf))
         return False;
-    RtspIncreaseCseq(sess);
+    sess->status = RTSP_QUIT;
     return True;
 }
 
+static RtspCmdHdl rtspcmdhdl[] = {{RTSP_OPTIONS, RtspOptionsCommand},
+                                {RTSP_DESCRIBE, RtspDescribeCommand},
+                                {RTSP_SETUP, RtspSetupCommand},
+                                {RTSP_PLAY, RtspPlayCommand},
+                                {RTSP_GET_PARAMETER, RtspGetParameterCommand},
+                                {RTSP_TEARDOWN, RtspTeardownCommand},
+                                {RTSP_KEEPALIVE, RtspKeepAliveCommand},
+                                {-1, NULL}};
+
 int32_t RtspStatusMachine(RtspSession *sess)
 {
-    struct timeval now, playnow;
-    do{
-        switch(sess->status){
-            case RTSP_START:
-                if (False == RtspOptionsCommand(sess)){
-                    fprintf(stderr, "Error: RtspOptionsCommand.\n");
-                    return False;
-                }
-                sess->status = RTSP_OPTIONS;
-                break;
-            case RTSP_OPTIONS:
-                if (False == RtspDescribeCommand(sess)){
-                    fprintf(stderr, "Error: RtspDescribeCommand.\n");
-                    return False;
-                }
-                sess->status = RTSP_DESCRIBE;
-                break;
-            case RTSP_DESCRIBE:
-                if (False == RtspSetupCommand(sess)){
-                    fprintf(stderr, "Error: RtspSetupCommand.\n");
-                    return False;
-                }
-                sess->status = RTSP_SETUP;
-                break;
-            case RTSP_SETUP:
-                if (False == RtspPlayCommand(sess)){
-                    fprintf(stderr, "Error: RtspPlayCommand.\n");
-                    return False;
-                }
-                sess->status = RTSP_PLAY;
-                break;
-            case RTSP_PLAY:
-                RtspGetParameterCommand(sess);
-                gettimeofday(&playnow, NULL);
-                sess->status = RTSP_GET_PARAMETER;
-                break;
-            case RTSP_GET_PARAMETER:
-                if (False == RtspCommandIsSupported(RTSP_GET_PARAMETER, sess))
-                    break;
-                gettimeofday(&now, NULL);
-                if ((now.tv_sec - playnow.tv_sec) > sess->timeout-5){
-                    RtspGetParameterCommand(sess);
-                    playnow = now;
-                }
-                break;
-            case RTSP_TEARDOWN:
-                if (False == RtspTeardownCommand(sess)){
-                    fprintf(stderr, "Error: RtspTeardownCommand.\n");
-                    return False;
-                }
-                sess->status = RTSP_QUIT;
-                break;
-            default:
-                printf("unkown status!\n");
-                break;
+    int32_t size = sizeof(rtspcmdhdl)/sizeof(RtspCmdHdl);
+    int32_t idx  = 0x00;
+
+    for (idx = 0x00; idx < size; idx++){
+        if (sess->status == rtspcmdhdl[idx].cmd){
+            if (False == rtspcmdhdl[idx].handle(sess)){
+                fprintf(stderr, "Error: Command wasn't supported.\n");
+                return False;
+            }
+            RtspIncreaseCseq(sess);
         }
-        usleep(100000);
-    }while(0);
+    }
 
     return True;
 }
