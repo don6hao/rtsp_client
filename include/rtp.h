@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include "rtspType.h"
+#include "rtsp_type.h"
 
 #define FRAME_MAX_SIZE              (1920*1080)
 #define RTP_TCP_MAGIC               (0x24)

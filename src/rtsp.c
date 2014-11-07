@@ -4,11 +4,11 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "rtspType.h"
+#include "rtsp_type.h"
 #include "utils.h"
 #include "rtsp.h"
-#include "rtspCommon.h"
-#include "rtspResponse.h"
+#include "rtsp_common.h"
+#include "rtsp_response.h"
 #include "net.h"
 
 static int32_t RtspSendKeepAliveCommand(RtspSession *sess);

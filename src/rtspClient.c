@@ -11,8 +11,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "rtspType.h"
-#include "rtspClient.h"
+#include "rtsp_type.h"
+#include "rtsp_client.h"
 #include "net.h"
 #include "tpool.h"
 #include "utils.h"
@@ -110,6 +110,7 @@ void* RtspHandleTcpConnect(void* args)
                 /* RTCP Protocl */
             }else if (rtpch == rot.ch){
                 /* RTP Protocl */
+                ParseRtp(buf, num, &sess->rtpsess);
                 length = sizeof(RtpHeader);
                 num = UnpackRtpNAL(buf+length, num-length, framebuf+framelen, framelen);
                 framelen += num;
@@ -123,6 +124,8 @@ void* RtspHandleTcpConnect(void* args)
                     framelen = 0x00;
                 }
             }
+        }else{/* Check Rtsp Command */
+
         }
     }while(1);
 
@@ -253,29 +256,25 @@ void* RtspEventLoop(void* args)
         return NULL;
     }
 
-#if 1
-    pthread_t transid = 0x00;
-#endif
     sess->sockfd = fd;
     do{
         if (True == isRtspClientSessionQuit(csess)){
             sess->status = RTSP_TEARDOWN;
-        }
-        if ((False == RtspStatusMachine(sess)) || \
-                (RTSP_QUIT == sess->status))
+        }else if ((False == RtspStatusMachine(sess)) || \
+                (RTSP_QUIT == sess->status)){
             break;
+        }
 
         if (RTSP_KEEPALIVE == sess->status){
-            if (0x00 == transid){
-                if (RTP_AVP_UDP == sess->trans){
-                    transid = RtspCreateThread(RtspHandleUdpConnect, (void *)sess);
-                    if (transid <= 0x00){
-                        fprintf(stderr, "RtspCreateThread Error!\n");
-                        continue;
-                    }
-                }else if (RTP_AVP_TCP == sess->trans){
-                    RtspHandleTcpConnect((void *)sess);
+            if (RTP_AVP_UDP == sess->trans){
+                pthread_t rtpid = 0x00;
+                rtpid = RtspCreateThread(RtspHandleUdpConnect, (void *)sess);
+                if (rtpid <= 0x00){
+                    fprintf(stderr, "RtspCreateThread Error!\n");
+                    break;
                 }
+            }else if (RTP_AVP_TCP == sess->trans){
+                RtspHandleTcpConnect((void *)sess);
             }
         }
     }while(1);

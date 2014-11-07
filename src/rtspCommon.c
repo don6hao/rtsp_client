@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "rtspCommon.h"
+#include "rtsp_common.h"
 
 static CmdTbl gcmdtbl[]={{"OPTIONS", 0},
                         {"DESCRIBE", 2},

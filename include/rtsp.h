@@ -1,7 +1,7 @@
 #ifndef _RTSP_H_
 #define _RTSP_H_
 
-#include "rtspType.h"
+#include "rtsp_type.h"
 #include "rtp.h"
 #include "rtcp.h"
 

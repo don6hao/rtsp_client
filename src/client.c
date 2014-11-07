@@ -13,8 +13,8 @@
 #include <pthread.h>
 #include <signal.h>
 
-#include "rtspType.h"
-#include "rtspClient.h"
+#include "rtsp_type.h"
+#include "rtsp_client.h"
 #include "tpool.h"
 
 static void help(int status);

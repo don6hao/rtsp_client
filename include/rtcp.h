@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <sys/time.h>
 
-#include "rtspType.h"
+#include "rtsp_type.h"
 #include "utils.h"
 #include "rtp.h"
 

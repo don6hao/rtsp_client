@@ -7,7 +7,7 @@
 #include "rtsp.h"
 #include "rtp.h"
 #include "utils.h"
-#include "rtspType.h"
+#include "rtsp_type.h"
 
 #define SHORT_INT_MAX (32767)
 static uint32_t UnpackRtpSingle_NAL(char *buf, uint32_t size, char *framebuf);

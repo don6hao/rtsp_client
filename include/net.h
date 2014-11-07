@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <netinet/in.h>
-#include "rtspType.h"
+#include "rtsp_type.h"
 
 int32_t SocketCork(int32_t fd, int32_t state);
 int32_t SocketNonblock(int32_t sockfd);

@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 #include "tpool.h"
-#include "rtspType.h"
+#include "rtsp_type.h"
 
 int32_t RtspCreateThread(FUNC func, void* args)
 {
