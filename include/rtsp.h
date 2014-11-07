@@ -72,7 +72,7 @@ typedef struct RTSPSESSION{
     AudioMedia    amedia;
     VideoMedia    vmedia;
     BufferControl buffctrl;
-    struct timeval now;
+    struct timeval last_cmd_time;
     char  sessid[32];
     char  url[128];
     char  username[128];

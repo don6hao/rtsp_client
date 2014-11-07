@@ -252,7 +252,7 @@ int32_t RtspPlayCommand(RtspSession *sess)
     if (False == RtspCheckResponseStatus(buf))
         return False;
     ParseTimeout(buf, num, sess);
-    gettimeofday(&sess->now, NULL);
+    gettimeofday(&sess->last_cmd_time, NULL);
     sess->status = RTSP_KEEPALIVE;
     RtspSendKeepAliveCommand(sess);
     return True;
@@ -274,12 +274,12 @@ int32_t RtspKeepAliveCommand(RtspSession *sess)
     struct timeval now;
     gettimeofday(&now, NULL);
 
-    if (now.tv_sec - sess->now.tv_sec > sess->timeout-5){
+    if (now.tv_sec - sess->last_cmd_time.tv_sec > sess->timeout-5){
 #ifdef RTSP_DEBUG
     printf("+++++++++++++++++++  Keep alive: command  ++++++++++++++++++++++++++\n");
 #endif
         RtspSendKeepAliveCommand(sess);
-        sess->now = now;
+        sess->last_cmd_time = now;
     }
 
     return True;
@@ -397,8 +397,7 @@ static RtspCmdHdl rtspcmdhdl[] = {{RTSP_OPTIONS, RtspOptionsCommand},
                                 {RTSP_PLAY, RtspPlayCommand},
                                 {RTSP_GET_PARAMETER, RtspGetParameterCommand},
                                 {RTSP_TEARDOWN, RtspTeardownCommand},
-                                {RTSP_KEEPALIVE, RtspKeepAliveCommand},
-                                {-1, NULL}};
+                                {RTSP_KEEPALIVE, RtspKeepAliveCommand}};
 
 int32_t RtspStatusMachine(RtspSession *sess)
 {

@@ -30,7 +30,7 @@ static uint32_t GetContentLength(char *buf, uint32_t size)
         }
     }
 
-    p += strlen("Content-Length: ");
+    p += strlen(CONTENT_LENGTH);
     char *ptr = p;
     do{
         if (*ptr == '\r' || *ptr == ';')
