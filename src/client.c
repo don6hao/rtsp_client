@@ -30,13 +30,23 @@ static void help(int status)
 static int32_t quitflag = 0x00;
 static void signal_handler(int signo)
 {
-    printf("Have caught signal N.O. %d\n", signo);
+    printf("catch signal NO. %d\n", signo);
     quitflag = 0x01;
+    return;
+}
+
+static void signal_init()
+{
+    signal(SIGINT, signal_handler);
+    signal(SIGHUP, signal_handler);
+    signal(SIGQUIT, signal_handler);
     return;
 }
 
 int32_t main(int argc, char **argv)
 {
+    signal_init();
+
     int32_t opt;
     char *url = NULL;
     static const struct option long_opts[] = {
@@ -49,7 +59,10 @@ int32_t main(int argc, char **argv)
                        long_opts, NULL)) != -1) {
         switch (opt) {
             case 'u':
-                url  = strdup(optarg);
+                if (NULL == (url  = strdup(optarg))){
+                    fprintf(stderr, "Error : Url Address Equal Null.\n");
+                    return 0x00;
+                }
                 break;
             case 'h':
                 help(EXIT_SUCCESS);
@@ -57,15 +70,6 @@ int32_t main(int argc, char **argv)
             default:
                 break;
         }
-    }
-
-    signal(SIGINT, signal_handler);
-    signal(SIGHUP, signal_handler);
-    signal(SIGQUIT, signal_handler);
-
-    if (NULL == url){
-        fprintf(stderr, "Error : Url Address Equal Null.\n");
-        return 0x00;
     }
 
     RtspClientSession *cses = InitRtspClientSession();

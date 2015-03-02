@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <limits.h>
 /* According to POSIX.1-2001 */
 #include <sys/select.h>
 
@@ -19,30 +20,39 @@
 #include "rtp.h"
 #include "rtcp.h"
 
-uint32_t ParseUrl(char *url, RtspClientSession *cses)
+static uint32_t check_url_prefix(char *url)
+{
+    if (!strncmp(url, PROTOCOL_PREFIX, strlen(PROTOCOL_PREFIX)))
+        return True;
+    return False;
+}
+
+static uint32_t parse_url_ip(char *url, char *ip)
 {
     uint32_t offset = sizeof(PROTOCOL_PREFIX) - 1;
-    char *pos = NULL, buf[8];
-    uint32_t len = 0x00;
-
-    RtspSession *sess = &cses->sess;
-    //get host
-    pos = (char *)strchr((const char *)(url+offset), ':');
+    char *pos = (char *)strchr((const char *)(url+offset), ':');
     if (NULL == pos){
         pos = (char *)strchr((const char *)(url+offset), '/');
-        if (NULL == pos)    return False;
+        if (NULL == pos)
+            return False;
     }
-    len  = (pos-url)-offset;
-    strncpy((char *)sess->ip, (const char *)(url+offset), len);
-    sess->ip[len] = '\0';
+    uint32_t len  = (pos-url)-offset;
+    strncpy(ip, (const char *)(url+offset), len);
+    ip[len] = '\0';
+    return True;
+}
 
-
-    //get port
-    pos = (char *)strchr((const char *)(url+offset), ':');
+static uint32_t parse_url_port(char *url, uint32_t *port)
+{
+    uint32_t offset = sizeof(PROTOCOL_PREFIX) - 1;
+    uint32_t len  = 0x00;
+    char buf[8] = {0x00};
+    char *pos = (char *)strchr((const char *)(url+offset), ':');
     if (NULL != pos){
         len = pos-url+1;
         pos = (char *)strchr((const char *)(url+len), '/');
-        if (NULL == pos)    return False;
+        if (NULL == pos)
+            return False;
 
         uint32_t size = (pos-url)-len;
         if (size > sizeof(buf)){
@@ -51,9 +61,24 @@ uint32_t ParseUrl(char *url, RtspClientSession *cses)
         }
         pos = url+len; //指向:符号
         strncpy((char *)buf, (const char *)pos, size);
-        sess->port = atol((const char *)buf); //Note测试port的范围大小
+        *port = atol((const char *)buf); //Note测试port的范围大小
+        if (*port > USHRT_MAX-1)
+            return False;
     }
 
+    return True;
+}
+
+
+uint32_t ParseUrl(char *url, RtspClientSession *cses)
+{
+    RtspSession *sess = &cses->sess;
+    if (False == check_url_prefix(url))
+        return False;
+    if (False == parse_url_ip(url, sess->ip))
+        return False;
+    if (False == parse_url_port(url, &sess->port))
+        return False;
     strncpy((char *)sess->url, (const char *)url, \
             strlen((const char *)url) > sizeof(sess->url) ? \
             sizeof(sess->url) : strlen((const char *)url));
